@@ -2,6 +2,8 @@
 
 Co-Scientist Lite is a reusable Codex workflow for live-literature hypothesis generation. It is not a local deployment of Google Co-Scientist and it does not maintain a local literature database.
 
+Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
+
 ## Structure
 
 - `prompts/co-scientist-lite.md`: stable task prompt and output contract.
@@ -14,9 +16,9 @@ Clone or enter the project directory, then run:
 
 ```bash
 python3 tools/co_scientist_lite.py \
-  --topic "<一句话研究问题：疾病/技术/机制/人群/场景>" \
-  --objective "<选择或自定义 objective>" \
-  --scope "<组合或自定义 scope>" \
+  --topic "<one-sentence research question: disease/technology/mechanism/population/setting>" \
+  --objective "<choose or customize an objective>" \
+  --scope "<combine or customize scope constraints>" \
   --depth standard \
   --journal-focus top-journals
 ```
@@ -25,27 +27,27 @@ python3 tools/co_scientist_lite.py \
 
 Objective options:
 
-- `生成可验证假设并筛选 Top 3 假设`
-- `识别顶刊研究方向，并转化为可验证课题`
-- `评估研究方向的创新性、可行性和转化价值`
-- `找可做回顾性数据验证的科研假设`
-- `为 Top 3 假设设计最低成本验证路线`
-- `生成综述选题框架和关键证据地图`
+- `Generate testable hypotheses and select the top 3`
+- `Identify high-impact research directions and convert them into testable projects`
+- `Evaluate novelty, feasibility, and translational value`
+- `Find hypotheses suitable for retrospective data validation`
+- `Design minimum-cost validation plans for the top 3 hypotheses`
+- `Generate a review-topic framework and key evidence map`
 
 Scope options:
 
-- `偏转化医学；优先近 5 年；可结合 AI`
-- `顶刊/高影响文献优先；同步补充专科直接证据`
-- `临床可落地优先；优先使用可获得的回顾性数据`
-- `机制研究优先；允许追溯奠基文献；标明证据等级`
-- `影像、病理、多组学、临床结局均可纳入`
-- `仅用于科研构思；不输出个人化诊断或治疗建议`
+- `Translational medicine focus; prioritize the last 5 years; AI may be included`
+- `Prioritize high-impact literature while adding direct specialty evidence`
+- `Favor clinically deployable ideas and available retrospective data`
+- `Mechanism-first; allow foundational literature; label evidence levels`
+- `Imaging, pathology, multi-omics, and clinical outcomes may be included`
+- `For research ideation only; do not provide personalized diagnosis or treatment advice`
 
 To save the generated task prompt:
 
 ```bash
 python3 tools/co_scientist_lite.py \
-  --topic "<一句话研究问题>" \
+  --topic "<one-sentence research question>" \
   --save
 ```
 
