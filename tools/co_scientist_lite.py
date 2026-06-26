@@ -15,6 +15,25 @@ from pathlib import Path
 
 DEFAULT_TIME_WINDOW = "优先近 5 年；必要时追溯奠基文献；必须写明检索日期"
 DEFAULT_MEDICAL_BOUNDARY = "科研/转化医学假设，不输出个人化诊断或治疗建议"
+DEFAULT_JOURNAL_FOCUS = "top-journals"
+
+JOURNAL_FOCUS_INSTRUCTIONS = {
+    "top-journals": (
+        "顶刊/高影响证据优先：先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、"
+        "Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、"
+        "PNAS、Radiology/European Radiology/Medical Image Analysis 等综合、医学、"
+        "肿瘤、影像和方法学高影响来源锚定研究方向；随后补充最直接相关的专科期刊证据。"
+        "不得只因期刊级别低而排除直接临床证据，也不得把期刊级别当作研究质量的唯一代理指标。"
+    ),
+    "balanced": (
+        "平衡证据优先：同时重视高影响期刊方向、专科直接证据、指南、临床试验和方法学论文；"
+        "按研究设计和与问题的直接相关性排序。"
+    ),
+    "direct": (
+        "直接证据优先：优先纳入与研究问题、人群/模型、技术和终点最直接匹配的论文；"
+        "顶刊文献用于补充机制背景和前沿方向。"
+    ),
+}
 
 
 def project_root() -> Path:
@@ -58,6 +77,8 @@ def build_prompt(args: argparse.Namespace) -> str:
 
 输出深度：{args.depth}
 
+文献优先级：{JOURNAL_FOCUS_INSTRUCTIONS[args.journal_focus]}
+
 医疗安全边界：{args.medical_boundary}
 
 ## 输出要求
@@ -66,8 +87,9 @@ def build_prompt(args: argparse.Namespace) -> str:
 2. 输出检索日志、证据表、假设表、反方审查、排序表、Top 3 验证方案。
 3. 所有论文、指南、数据库页面都要给链接；能核验 DOI/PMID 时写出 DOI/PMID。
 4. 预印本、综述、动物/体外研究、回顾性研究、RCT、指南要分层标注。
-5. 证据不足时明确写“不足”，不要补造结论。
-6. 结尾列出医疗转化前景、关键风险和待补证据。
+5. 单独标注“顶刊/高影响文献提供的研究方向”和“专科直接证据提供的可验证事实”，不要混为同一种证据。
+6. 证据不足时明确写“不足”，不要补造结论。
+7. 结尾列出医疗转化前景、关键风险和待补证据。
 """
 
 
@@ -96,6 +118,15 @@ def parse_args() -> argparse.Namespace:
         choices=("quick", "standard", "deep"),
         default="standard",
         help="Expected output depth.",
+    )
+    parser.add_argument(
+        "--journal-focus",
+        choices=tuple(JOURNAL_FOCUS_INSTRUCTIONS),
+        default=DEFAULT_JOURNAL_FOCUS,
+        help=(
+            "Evidence priority: top-journals anchors directions, balanced mixes "
+            "high-impact and direct evidence, direct prioritizes exact-match studies."
+        ),
     )
     parser.add_argument(
         "--medical-boundary",
