@@ -14,7 +14,7 @@ Clone or enter the project directory, then run:
 
 ```bash
 python3 tools/co_scientist_lite.py \
-  --topic "肠癌肝转移超声造影研究" \
+  --topic "你的研究问题" \
   --objective "生成可验证假设并筛选 Top 3 假设" \
   --scope "偏转化医学；优先近 5 年；可结合AI" \
   --depth standard
@@ -24,7 +24,7 @@ To save the generated task prompt:
 
 ```bash
 python3 tools/co_scientist_lite.py \
-  --topic "肠癌肝转移超声造影研究" \
+  --topic "你的研究问题" \
   --save
 ```
 
