@@ -1,6 +1,6 @@
 # Co-Scientist Lite
 
-Co-Scientist Lite is a reusable Codex workflow for live-literature hypothesis generation. It is not a local deployment of Google Co-Scientist and it does not maintain a local literature database.
+Co-Scientist Lite is a reusable prompt/workflow generator for guiding a Codex-like assistant through live-literature hypothesis generation. The generated prompt asks the assistant to use whatever live search tools are available in the current session; this project does not search the literature by itself.
 
 Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
@@ -55,4 +55,4 @@ With `--save`, generated prompts are written to this project's `outputs/co_scien
 
 ## Important Boundary
 
-This project generates a stable prompt for a Codex-like assistant. It does not perform literature search by itself, does not include a local paper database, and does not provide clinical diagnosis or treatment advice.
+This project generates a stable prompt for a Codex-like assistant. The assistant may perform live literature search when it executes that prompt, but this script and repository do not perform literature search by themselves, do not include a local paper database, and do not provide clinical diagnosis or treatment advice.
