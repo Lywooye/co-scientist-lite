@@ -40,14 +40,6 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def find_output_root() -> Path | None:
-    cwd = Path.cwd().resolve()
-    for candidate in (cwd, *cwd.parents):
-        if (candidate / "08_Outputs").exists():
-            return candidate
-    return None
-
-
 def slugify(text: str, max_length: int = 48) -> str:
     text = re.sub(r"\s+", "-", text.strip())
     text = re.sub(r"[^\w\-\u4e00-\u9fff]+", "", text)
@@ -136,7 +128,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--save",
         action="store_true",
-        help="Save the generated prompt under 08_Outputs/co_scientist_requests/.",
+        help="Save the generated prompt under outputs/co_scientist_requests/.",
     )
     parser.add_argument(
         "--output",
@@ -152,12 +144,7 @@ def write_output(content: str, args: argparse.Namespace) -> Path | None:
             path = Path.cwd().resolve() / path
     elif args.save:
         stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-        output_root = find_output_root()
-        base_dir = (
-            output_root / "08_Outputs" / "co_scientist_requests"
-            if output_root
-            else project_root() / "outputs" / "co_scientist_requests"
-        )
+        base_dir = project_root() / "outputs" / "co_scientist_requests"
         path = base_dir / f"{stamp}-{slugify(args.topic)}.md"
     else:
         return None

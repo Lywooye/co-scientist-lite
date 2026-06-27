@@ -51,7 +51,7 @@ python3 tools/co_scientist_lite.py \
   --save
 ```
 
-如果命令在包含 `08_Outputs/` 的 Obsidian 风格工作区运行，保存的任务提示会写入 `08_Outputs/co_scientist_requests/`；否则会写入本项目的 `outputs/co_scientist_requests/`。保存的是任务提示，不是文献库。
+使用 `--save` 时，生成的任务提示会写入本项目的 `outputs/co_scientist_requests/`。如果想写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
 
 ## 重要边界
 

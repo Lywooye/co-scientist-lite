@@ -70,7 +70,7 @@ python3 tools/co_scientist_lite.py \
   --save
 ```
 
-如果在含 `08_Outputs/` 的 Obsidian 风格工作区运行，默认保存到 `08_Outputs/co_scientist_requests/`；否则保存到本项目的 `outputs/co_scientist_requests/`。保存的是任务提示，不是文献库。
+使用 `--save` 时，默认保存到本项目的 `outputs/co_scientist_requests/`。如果需要写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
 
 ## 推荐输出验收标准
 
@@ -84,9 +84,9 @@ python3 tools/co_scientist_lite.py \
 - Top 3 的最小验证方案。
 - 明确的不确定性和不能过度解读的地方。
 
-## 写回 Obsidian 的建议
+## 本地归档建议
 
-- 生成的 Markdown 报告统一归档到 vault 的 `08_Outputs/co_scientist_reports/`，作为项目材料。
-- 本项目内的 `outputs/` 只作为临时输出或备份位置；面向 Obsidian 查阅时，以 vault 内 `08_Outputs/co_scientist_reports/` 为准。
+- 生成的 Markdown 报告建议归档到你自己的知识库或项目管理系统，但不要把私人路径写进公开仓库。
+- 本项目内的 `outputs/` 只作为临时输出或备份位置，默认不提交到 Git。
 - 如果要沉淀到个人知识库，不要直接把长报告塞进概念页；先作为来源页或项目页保存，再提炼概念页。
 - 涉及论文、指南、数据库页面时，保留 URL、DOI、PMID、检索日期和“是否核验全文”的状态。

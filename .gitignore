@@ -1,6 +1,29 @@
+# Python/cache
 __pycache__/
 *.py[cod]
+.cache/
+
+# OS/editor noise
 .DS_Store
+*.swp
+
+# Local runtime output
 outputs/
+tmp/
+*.log
+
+# Local/private configuration
+local/
+.local/
 .env
 .env.*
+
+# Common secret/key file patterns
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.secret
+secrets.*

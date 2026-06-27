@@ -51,7 +51,7 @@ python3 tools/co_scientist_lite.py \
   --save
 ```
 
-If the command is run from an Obsidian-style workspace containing `08_Outputs/`, saved prompts go to `08_Outputs/co_scientist_requests/`. Otherwise they go to this project's `outputs/co_scientist_requests/`.
+With `--save`, generated prompts are written to this project's `outputs/co_scientist_requests/`. Use `--output /path/to/request.md` when you want to write the prompt somewhere else.
 
 ## Important Boundary
 
