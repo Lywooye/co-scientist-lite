@@ -60,7 +60,7 @@ python3 tools/co_scientist_lite.py \
 | `--expansion-level` | `none`, `focused`, `broad` | `focused` | 检索扩展范围。`focused` 会加入相邻检索词和有限跨病种方法迁移。 |
 | `--transfer-domains` | 逗号分隔列表 | `liver,thyroid,lymph-node,kidney,prostate` | 可参考的方法迁移病种或器官场景。 |
 | `--medical-boundary` | 自由文本 | 科研/转化医学假设，不输出个人化诊断或治疗建议 | 生成 prompt 时的医学安全边界。 |
-| `--save` | flag | 关闭 | 将生成的任务提示保存到 `outputs/co_scientist_requests/`。 |
+| `--save` | flag | 关闭 | 保存生成的任务提示。若配置了 `CO_SCIENTIST_REQUEST_DIR` 或 `local/profile.env`，优先使用该目录；否则回退到 `outputs/co_scientist_requests/`。 |
 | `--output` | 文件路径 | 无 | 将生成的任务提示保存到指定路径。 |
 | `--lookup-if` | 期刊名 | 无 | 查询本地 IF/Q 指标后退出，可重复使用。 |
 
@@ -116,7 +116,7 @@ python3 tools/co_scientist_lite.py --lookup-if "Radiology"
 --output "/path/to/request.md"
 ```
 
-使用 `--save` 时，生成的任务提示会写入本项目的 `outputs/co_scientist_requests/`。如果想写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
+使用 `--save` 时，如果环境变量或 `local/profile.env` 配置了 `CO_SCIENTIST_REQUEST_DIR`，生成的任务提示会优先写入该目录；否则回退到本项目的 `outputs/co_scientist_requests/`。如果想写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
 
 ## 重要边界
 

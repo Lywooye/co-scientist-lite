@@ -164,7 +164,7 @@ python3 tools/co_scientist_lite.py \
   --save
 ```
 
-使用 `--save` 时，默认保存到本项目的 `outputs/co_scientist_requests/`。如果需要写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
+使用 `--save` 时，若环境变量或 `local/profile.env` 配置了 `CO_SCIENTIST_REQUEST_DIR`，默认保存到该目录；否则回退到本项目的 `outputs/co_scientist_requests/`。如果需要写到其他位置，请显式使用 `--output /path/to/request.md`。保存的是任务提示，不是文献库。
 
 ## 推荐输出验收标准
 

@@ -10,7 +10,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import re
+import shlex
 import unicodedata
 from pathlib import Path
 
@@ -71,6 +73,41 @@ def normalize_list(value: str) -> str:
 
 def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def local_profile_defaults() -> dict[str, str]:
+    profile_path = project_root() / "local" / "profile.env"
+    if not profile_path.exists():
+        return {}
+
+    defaults = {}
+    for line in profile_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        try:
+            parsed = shlex.split(value, comments=False, posix=True)
+            defaults[key] = parsed[0] if parsed else ""
+        except ValueError:
+            defaults[key] = value.strip().strip("'\"")
+    return defaults
+
+
+def local_setting(name: str) -> str | None:
+    return os.environ.get(name) or local_profile_defaults().get(name)
+
+
+def default_request_dir() -> Path:
+    configured = local_setting("CO_SCIENTIST_REQUEST_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return project_root() / "outputs" / "co_scientist_requests"
 
 
 def slugify(text: str, max_length: int = 48) -> str:
@@ -505,7 +542,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--save",
         action="store_true",
-        help="Save the generated prompt under outputs/co_scientist_requests/.",
+        help=(
+            "Save the generated prompt. Uses CO_SCIENTIST_REQUEST_DIR or "
+            "local/profile.env when configured; otherwise uses outputs/co_scientist_requests/."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -521,7 +561,7 @@ def write_output(content: str, args: argparse.Namespace) -> Path | None:
             path = Path.cwd().resolve() / path
     elif args.save:
         stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-        base_dir = project_root() / "outputs" / "co_scientist_requests"
+        base_dir = default_request_dir()
         path = base_dir / f"{stamp}-{slugify(args.topic)}.md"
     else:
         return None

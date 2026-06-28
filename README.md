@@ -60,7 +60,7 @@ Most options are optional. The tool now defaults to `--mode multi-agent`.
 | `--expansion-level` | `none`, `focused`, `broad` | `focused` | Search expansion breadth. `focused` adds adjacent terms and limited cross-disease transfer. |
 | `--transfer-domains` | comma-separated list | `liver,thyroid,lymph-node,kidney,prostate` | Method-transfer disease or organ contexts. |
 | `--medical-boundary` | free text | research ideation only | Medical safety boundary for the generated prompt. |
-| `--save` | flag | off | Save the generated task prompt under `outputs/co_scientist_requests/`. |
+| `--save` | flag | off | Save the generated task prompt. Uses `CO_SCIENTIST_REQUEST_DIR` or `local/profile.env` when configured; otherwise falls back to `outputs/co_scientist_requests/`. |
 | `--output` | file path | none | Save the generated prompt to an explicit path. |
 | `--lookup-if` | journal name | none | Look up local IF/Q metrics and exit. Can be repeated. |
 
@@ -116,7 +116,7 @@ or:
 --output "/path/to/request.md"
 ```
 
-With `--save`, generated prompts are written to this project's `outputs/co_scientist_requests/`. Use `--output /path/to/request.md` when you want to write the prompt somewhere else.
+With `--save`, generated prompts are written to `CO_SCIENTIST_REQUEST_DIR` if that environment variable or `local/profile.env` configures it. Otherwise the fallback is this project's `outputs/co_scientist_requests/`. Use `--output /path/to/request.md` when you want to write the prompt somewhere else.
 
 ## Important Boundary
 
