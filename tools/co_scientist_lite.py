@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import re
+import unicodedata
 from pathlib import Path
 
 
@@ -25,6 +27,7 @@ DEFAULT_TRANSFER_DOMAINS = "liver,thyroid,lymph-node,kidney,prostate"
 DEFAULT_REFERENCE_STYLE = "vancouver"
 DEFAULT_JOURNAL_METRICS = "impact-factor"
 DEFAULT_IMPACT_FACTOR_YEAR = "2025"
+DEFAULT_LOCAL_METRICS_DIR = Path("local") / "journal_metrics"
 
 JOURNAL_FOCUS_INSTRUCTIONS = {
     "top-journals": (
@@ -76,16 +79,153 @@ def slugify(text: str, max_length: int = 48) -> str:
     return text[:max_length].strip("-") or "co-scientist-lite"
 
 
+def normalize_journal_key(value: str | None) -> str:
+    if not value:
+        return ""
+    text = unicodedata.normalize("NFKD", str(value)).lower()
+    text = text.replace("&", " and ")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def default_local_impact_factor_source(year: str) -> Path | None:
+    metrics_dir = project_root() / DEFAULT_LOCAL_METRICS_DIR
+    candidates = [
+        metrics_dir / f"jcr_{year}.jsonl",
+        metrics_dir / "jcr_2025.jsonl",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return None
+
+
+def resolve_impact_factor_source(
+    args: argparse.Namespace, force_local: bool = False
+) -> Path | None:
+    if args.impact_factor_source:
+        source_path = Path(args.impact_factor_source).expanduser()
+        if source_path.exists():
+            source_path = source_path.resolve()
+            args.impact_factor_source = str(source_path)
+            args.impact_factor_source_kind = "local-file"
+            return source_path
+        args.impact_factor_source_kind = "description"
+        return None
+
+    if args.journal_metrics == "none" and not force_local:
+        args.impact_factor_source_kind = "none"
+        return None
+
+    local_source = default_local_impact_factor_source(args.impact_factor_year)
+    if local_source:
+        args.impact_factor_source = str(local_source)
+        args.impact_factor_source_kind = "auto-local-file"
+        return local_source
+
+    args.impact_factor_source_kind = "none"
+    return None
+
+
+def load_journal_metrics(path: Path) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                records.append(json.loads(line))
+    return records
+
+
+def is_partial_journal_candidate(query_key: str, candidate_key: str) -> bool:
+    if len(query_key) < 6 or len(candidate_key) < 6:
+        return False
+    return query_key in candidate_key or candidate_key in query_key
+
+
+def match_journal_metric(
+    journal: str, records: list[dict[str, object]]
+) -> tuple[dict[str, object] | None, str, list[dict[str, object]]]:
+    key = normalize_journal_key(journal)
+    for field, label in (
+        ("match_full_title", "full_title"),
+        ("match_abbreviation", "abbreviation"),
+    ):
+        for record in records:
+            if key and key == record.get(field):
+                return record, label, []
+
+    candidates = []
+    for record in records:
+        title_key = str(record.get("match_full_title") or "")
+        abbr_key = str(record.get("match_abbreviation") or "")
+        if key and (
+            is_partial_journal_candidate(key, title_key)
+            or is_partial_journal_candidate(key, abbr_key)
+        ):
+            candidates.append(record)
+            if len(candidates) >= 5:
+                break
+    return None, "unmatched", candidates
+
+
+def print_if_lookup(args: argparse.Namespace) -> int:
+    source_path = resolve_impact_factor_source(args, force_local=True)
+    if not source_path:
+        raise SystemExit(
+            "No local IF source found. Put a JSONL file at "
+            "local/journal_metrics/jcr_2025.jsonl or pass --impact-factor-source."
+        )
+
+    records = load_journal_metrics(source_path)
+    for query in args.lookup_if:
+        match, match_type, candidates = match_journal_metric(query, records)
+        print(f"Query: {query}")
+        print(f"Source: {source_path}")
+        if match:
+            print(f"Match: {match_type}")
+            print(f"Journal: {match.get('full_title')}")
+            print(f"Abbreviation: {match.get('abbreviation')}")
+            print(f"IF: {match.get('impact_factor')}")
+            print(f"Quartile: {match.get('quartile')}")
+            print(f"Index: {match.get('index_type')}")
+            print(f"Subject: {match.get('primary_subject')}")
+            print(f"Source row: {match.get('source_row')}")
+        else:
+            print("IF: 未匹配/未核验")
+            if candidates:
+                print("Possible candidates:")
+                for candidate in candidates:
+                    print(
+                        "- "
+                        f"{candidate.get('full_title')} | "
+                        f"{candidate.get('abbreviation')} | "
+                        f"IF {candidate.get('impact_factor')} | "
+                        f"{candidate.get('quartile')}"
+                    )
+        print()
+    return 0
+
+
 def build_reference_instructions(args: argparse.Namespace) -> str:
     citation_rule = REFERENCE_STYLE_INSTRUCTIONS[args.reference_style]
     if args.journal_metrics == "none":
         metrics_rule = "本轮不要求补充期刊指标；仍需核验 DOI/PMID 和期刊名。"
     else:
         if args.impact_factor_source:
-            metrics_source = (
-                f"优先使用用户提供的 IF/JCR 表：{args.impact_factor_source}。"
-                "最终报告只能写来源文件名或“用户提供的 IF 表”，不要暴露本地绝对路径。"
-            )
+            source_kind = getattr(args, "impact_factor_source_kind", "description")
+            if source_kind in {"auto-local-file", "local-file"}:
+                metrics_source = (
+                    f"优先使用本地结构化 IF 表：{args.impact_factor_source}。"
+                    "字段包括 full_title、abbreviation、impact_factor、quartile、"
+                    "match_full_title、match_abbreviation。"
+                    "最终报告只能写“本地 2025 IF 表”或“用户提供的 IF 表”，不要暴露本地绝对路径。"
+                )
+            else:
+                metrics_source = (
+                    f"优先使用用户提供的 IF/JCR 表：{args.impact_factor_source}。"
+                    "最终报告只能写来源文件名或“用户提供的 IF 表”，不要暴露本地绝对路径。"
+                )
         else:
             metrics_source = (
                 "优先使用用户在当前会话提供的 IF/JCR 表；若未提供，则用实时搜索可核验来源。"
@@ -248,7 +388,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate a reusable Codex prompt for Co-Scientist Lite."
     )
-    parser.add_argument("--topic", required=True, help="Research question or topic.")
+    parser.add_argument("--topic", help="Research question or topic.")
     parser.add_argument(
         "--objective",
         default="生成可验证科研假设，并按医疗转化价值和实验可行性排序",
@@ -349,6 +489,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--lookup-if",
+        action="append",
+        metavar="JOURNAL",
+        help=(
+            "Look up local IF/Q metrics for a journal and exit. Can be repeated. "
+            "Uses --impact-factor-source or local/journal_metrics/jcr_2025.jsonl."
+        ),
+    )
+    parser.add_argument(
         "--medical-boundary",
         default=DEFAULT_MEDICAL_BOUNDARY,
         help="Medical safety boundary.",
@@ -384,8 +533,13 @@ def write_output(content: str, args: argparse.Namespace) -> Path | None:
 
 def main() -> int:
     args = parse_args()
+    if args.lookup_if:
+        return print_if_lookup(args)
+    if not args.topic:
+        raise SystemExit("--topic is required unless --lookup-if is used")
     if args.rounds < 1:
         raise SystemExit("--rounds must be >= 1")
+    resolve_impact_factor_source(args)
     content = build_prompt(args)
     saved_path = write_output(content, args)
     print(content)

@@ -82,6 +82,20 @@ python3 tools/co_scientist_lite.py \
 
 IF 表建议包含期刊全称、简称、影响因子、Q分区。匹配不到的期刊必须写“IF: 未匹配/未核验”，不能猜测。
 
+本地私有 IF 表可放在：
+
+```text
+local/journal_metrics/jcr_2025.jsonl
+```
+
+该路径被 Git 忽略，适合放授权边界不明确或不应公开分发的表格转换结果。若文件存在，工具会自动引用；若文件不存在，公开版不会报错，只会要求使用实时可核验来源或标记未匹配/未核验。
+
+快速查单个期刊：
+
+```bash
+python3 tools/co_scientist_lite.py --lookup-if "Radiology"
+```
+
 ### 方式 C：No-database multi-agent simulation
 
 ```bash

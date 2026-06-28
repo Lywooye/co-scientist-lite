@@ -61,6 +61,14 @@ python3 tools/co_scientist_lite.py \
 
 `--impact-factor-source` is optional. When provided, it should point to a journal metrics spreadsheet with columns such as full journal title, abbreviation, impact factor, and quartile. If a journal cannot be matched, the generated prompt asks the assistant to write `IF: unmatched/unverified` rather than guessing.
 
+The public repository does not bundle Journal Citation Reports or impact factor datasets. If a private local file exists at `local/journal_metrics/jcr_2025.jsonl`, the tool will automatically reference it in generated prompts. If the file is missing, the tool does not fail; it falls back to verifiable live sources or explicit `unmatched/unverified` labels.
+
+For a quick local lookup:
+
+```bash
+python3 tools/co_scientist_lite.py --lookup-if "Radiology"
+```
+
 ## Multi-agent Simulation
 
 Use `--mode multi-agent` to generate a no-database, Co-Scientist-inspired multi-agent simulation prompt:

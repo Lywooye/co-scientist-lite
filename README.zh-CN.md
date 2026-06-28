@@ -61,6 +61,14 @@ python3 tools/co_scientist_lite.py \
 
 `--impact-factor-source` 是可选项，可以指向 JCR/IF 表格。表格最好包含期刊全称、简称、影响因子、Q分区等列。若某个期刊匹配不到，生成的 prompt 会要求报告写“IF: 未匹配/未核验”，不能猜测或补造。
 
+公开仓库不内置 Journal Citation Reports 或影响因子数据。如果本机存在私有文件 `local/journal_metrics/jcr_2025.jsonl`，工具会在生成 prompt 时自动引用它；如果没有这个文件，工具不会报错，会降级为使用实时可核验来源，或明确写“未匹配/未核验”。
+
+本地快速查 IF：
+
+```bash
+python3 tools/co_scientist_lite.py --lookup-if "Radiology"
+```
+
 ## 多 agent 仿真模式
 
 使用 `--mode multi-agent` 可以生成一个不接数据库的 Co-Scientist-inspired 多 agent 仿真 prompt：
