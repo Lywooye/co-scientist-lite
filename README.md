@@ -57,10 +57,14 @@ python3 tools/co_scientist_lite.py \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
-  --ranking tournament
+  --ranking tournament \
+  --expansion-level focused \
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
 ```
 
-This mode simulates the structure of a supervisor, evidence agent, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.
+This mode simulates the structure of a supervisor, evidence agent, search expansion agent, cross-disease transfer agent, evidence-distance classifier, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.
+
+Search expansion is intended to reduce topic over-narrowing when no local literature database is available. `--expansion-level focused` derives adjacent search terms from the topic and adds limited cross-disease method transfer. Cross-disease evidence is treated as method inspiration only; it cannot directly support clinical claims for the target disease.
 
 To save the generated task prompt:
 

@@ -20,6 +20,8 @@ DEFAULT_MODE = "standard"
 DEFAULT_GENERATORS = "mechanism,translation,methods"
 DEFAULT_REVIEWERS = "evidence,methods,translation"
 DEFAULT_RANKING = "tournament"
+DEFAULT_EXPANSION_LEVEL = "focused"
+DEFAULT_TRANSFER_DOMAINS = "liver,thyroid,lymph-node,kidney,prostate"
 
 JOURNAL_FOCUS_INSTRUCTIONS = {
     "top-journals": (
@@ -119,34 +121,52 @@ Agent 结构：
    - 使用当前会话可用的实时搜索能力，形成证据表。
    - 只使用公开网页、论文页面、摘要、指南和用户提供材料；不调用本地文献库或专用数据库。
 
-3. Generation agents
+3. Search Expansion agent
+   - 扩展级别：{args.expansion_level}
+   - 先把 topic 拆成概念组：疾病/对象、技术、相邻技术、任务/终点、方法学、机制。
+   - 按扩展级别生成并记录检索式：none 只保留 core 和 high-impact anchor；focused 加入 adjacent、methods 和有限 cross-disease transfer；broad 可更积极加入机制、相邻技术和跨病种方法学检索。
+   - 可用检索式类型包括：core、adjacent、cross-disease transfer、mechanism、methods、high-impact anchor。
+   - 每类检索式都要说明目的、可能漂移风险和纳入/排除标准。
+
+4. Cross-Disease Transfer agent
+   - 候选迁移病种/场景：{normalize_list(args.transfer_domains)}
+   - 若扩展级别为 none，则只说明未启用跨病种迁移检索，不展开该 agent。
+   - 只搜索“同技术或相邻技术在其他病种中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics、验证终点。
+   - 跨病种证据不得直接支撑目标病种临床有效性结论，只能进入“可迁移启发”或“待验证假设”。
+
+5. Evidence Distance Classifier
+   - 为每条证据标注 evidence distance：core、adjacent、cross-disease transfer、mechanism only、methods only、high-impact anchor。
+   - core/adjacent 可支撑主要结论；cross-disease、mechanism、methods 只能支撑假设生成或方法设计。
+   - 若跨病种证据与目标病种生理、血供、检查窗口或临床终点不一致，必须写明迁移风险。
+
+6. Generation agents
    - 生成视角：{normalize_list(args.generators)}
    - 每个生成 agent 至少提出 2-3 条候选假设，并写明证据链和最小验证方式。
 
-4. Proximity agent
+7. Proximity agent
    - 对候选假设去重、聚类、合并相似项。
    - 输出 hypothesis clusters，并说明每个 cluster 的共同机制、差异点和覆盖空白。
 
-5. Reflection agents
+8. Reflection agents
    - 审查视角：{normalize_list(args.reviewers)}
    - 对每条候选假设进行证据、方法学、临床转化和偏倚风险审查。
 
-6. Ranking agent
+9. Ranking agent
    - 排序方式：{args.ranking}
    - 若使用 tournament，则进行成对比较，给出胜负理由、关键否决项和最终积分/排序。
 
-7. Evolution agent
+10. Evolution agent
    - 进化轮数：{args.rounds}
    - 对高分假设进行 refine、combine、split 或 reject。
    - 每一轮都要说明假设发生了什么变化，以及为什么变化。
 
-8. Meta-review agent
+11. Meta-review agent
    - 综合 evidence、reviews、ranking 和 evolution，输出最终 Top 3。
    - 明确哪些结论来自强证据，哪些只是可验证设想。
 
 额外输出要求：
 
-- 输出 hypothesis pool、clusters、review matrix、tournament/ranking log、evolution log。
+- 输出 query expansion map、evidence distance table、cross-disease transfer table、hypothesis pool、clusters、review matrix、tournament/ranking log、evolution log。
 - 不要把多 agent 仿真写成真实独立模型并行执行；应明确这是单次 Codex 会话中的结构化角色仿真。
 - 不接入 ChEMBL、UniProt、AlphaFold 或其他专用数据库，除非用户在当前会话中另行明确要求。"""
 
@@ -204,6 +224,23 @@ def parse_args() -> argparse.Namespace:
         choices=("score", "tournament"),
         default=DEFAULT_RANKING,
         help="Ranking method for --mode multi-agent.",
+    )
+    parser.add_argument(
+        "--expansion-level",
+        choices=("none", "focused", "broad"),
+        default=DEFAULT_EXPANSION_LEVEL,
+        help=(
+            "Search expansion level for --mode multi-agent. focused adds adjacent "
+            "and limited cross-disease searches; broad expands more aggressively."
+        ),
+    )
+    parser.add_argument(
+        "--transfer-domains",
+        default=DEFAULT_TRANSFER_DOMAINS,
+        help=(
+            "Comma-separated disease or organ contexts for cross-disease transfer "
+            "in --mode multi-agent."
+        ),
     )
     parser.add_argument(
         "--journal-focus",

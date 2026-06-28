@@ -21,7 +21,7 @@
 
 1. 打开 `prompts/co-scientist-lite.md`。
 2. 复制“复制给 Codex 的任务模板”。
-3. 替换 `<topic>`、`<objective>`、`<scope_and_constraints>`、`<time_window>`。
+3. 替换 `<topic>`、`<objective>`、`<scope_and_constraints>`、`<time_window>`、搜索扩展级别和迁移参考场景。
 4. 发给 Codex 执行。
 
 ### 方式 B：用本地生成器生成任务提示
@@ -71,13 +71,18 @@ python3 tools/co_scientist_lite.py \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
-  --ranking tournament
+  --ranking tournament \
+  --expansion-level focused \
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
 ```
 
 这个模式仿真以下结构：
 
 - `Supervisor agent`：拆题、规划、定义成功标准和停止条件。
 - `Evidence agent`：使用当前会话可用的实时搜索能力形成证据表。
+- `Search Expansion agent`：从 topic 拆出概念组，生成 core、adjacent、methods、cross-disease transfer 等检索式。
+- `Cross-Disease Transfer agent`：检索同技术在其他病种/器官中的方法学启发，但不把它当作目标病种的直接临床证据。
+- `Evidence Distance Classifier`：给每条证据标注 core、adjacent、cross-disease transfer、mechanism only、methods only 或 high-impact anchor。
 - `Generation agents`：从不同视角生成候选假设。
 - `Proximity agent`：去重、聚类、合并相似假设。
 - `Reflection agents`：从证据、方法学和转化可行性做虚拟同行评审。
@@ -85,7 +90,7 @@ python3 tools/co_scientist_lite.py \
 - `Evolution agent`：对高分假设做 refine/combine/split/reject。
 - `Meta-review agent`：综合输出最终 Top 3 和验证路线。
 
-边界：不接 ChEMBL、UniProt、AlphaFold，不建本地文献库；这是结构化角色仿真，不是 Google Co-Scientist 的复刻。
+边界：不接 ChEMBL、UniProt、AlphaFold，不建本地文献库；跨病种证据只用于方法迁移和假设生成；这是结构化角色仿真，不是 Google Co-Scientist 的复刻。
 
 保存一份任务请求：
 

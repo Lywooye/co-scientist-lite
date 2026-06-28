@@ -57,10 +57,14 @@ python3 tools/co_scientist_lite.py \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
-  --ranking tournament
+  --ranking tournament \
+  --expansion-level focused \
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
 ```
 
-这个模式会仿真 supervisor、evidence agent、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。
+这个模式会仿真 supervisor、evidence agent、search expansion agent、cross-disease transfer agent、evidence-distance classifier、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。
+
+`--expansion-level focused` 用来避免没有本地文献库时检索范围过窄：先从 topic 拆出疾病、技术、相邻技术、任务/终点、方法学和机制，再有限扩展检索式。`--transfer-domains` 用于指定可参考的跨病种/跨器官方法学场景；这些证据只能作为方法迁移和假设生成启发，不能直接支撑目标病种的临床有效性结论。
 
 保存生成的任务提示：
 

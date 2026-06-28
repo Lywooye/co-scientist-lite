@@ -22,6 +22,12 @@
 执行模式：
 <standard 或 multi-agent>
 
+搜索扩展：
+<none / focused / broad；默认 focused>
+
+跨病种/跨场景迁移参考：
+<例如 liver, thyroid, lymph-node, kidney, prostate；只作为方法迁移启发>
+
 文献优先级：
 默认采用“顶刊/高影响证据优先，但不排除专科直接证据”。先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、PNAS、Radiology/European Radiology/Medical Image Analysis 等综合、医学、肿瘤、影像和方法学高影响来源锚定研究方向；随后补充最直接相关的专科期刊证据。不得只因期刊级别低而排除直接临床证据，也不得把期刊级别当作研究质量的唯一代理指标。
 
@@ -95,6 +101,22 @@ Evidence agent
 - 只使用公开网页、论文页面、摘要、指南和用户材料。
 - 不接入本地文献库，也不调用 ChEMBL、UniProt、AlphaFold 等专用数据库，除非用户另行明确要求。
 
+Search Expansion agent
+- 先把 topic 拆成概念组：疾病/对象、技术、相邻技术、任务/终点、方法学、机制。
+- 按 expansion level 生成检索式：`none` 只保留 core 和 high-impact anchor；`focused` 加入 adjacent、methods 和有限 cross-disease transfer；`broad` 可更积极加入机制、相邻技术和跨病种方法学检索。
+- 可用检索式类型包括 core、adjacent、cross-disease transfer、mechanism、methods、high-impact anchor。
+- 每类检索式都要说明目的、可能漂移风险和纳入/排除标准。
+
+Cross-Disease Transfer agent
+- 只搜索“同技术或相邻技术在其他病种中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics、验证终点。
+- 跨病种证据不得直接支撑目标病种临床有效性结论，只能进入“可迁移启发”或“待验证假设”。
+- 若目标病种与迁移病种在生理、血供、检查窗口或临床终点上存在关键差异，必须明确写出迁移风险。
+
+Evidence Distance Classifier
+- 为每条证据标注 evidence distance：core、adjacent、cross-disease transfer、mechanism only、methods only、high-impact anchor。
+- core/adjacent 可支撑主要结论；cross-disease、mechanism、methods 只能支撑假设生成或方法设计。
+- 不允许把跨病种证据写成目标病种的直接临床证据。
+
 Generation agents
 - 从多个视角生成候选假设，例如 mechanism、translation、methods、AI、clinical。
 - 每个视角至少提出 2-3 条候选假设。
@@ -122,6 +144,9 @@ Meta-review agent
 
 Multi-agent 模式的额外输出：
 
+- `query expansion map`
+- `evidence distance table`
+- `cross-disease transfer table`
 - `hypothesis pool`
 - `hypothesis clusters`
 - `review matrix`
@@ -136,6 +161,8 @@ Multi-agent 模式的额外输出：
 目标：<找机制 / 药物重定位 / 临床转化选题 / 实验方案 / 综述选题>
 范围：<疾病、人群、模型、时间范围、排除项>
 输出深度：<quick / standard / deep>
+搜索扩展：<none / focused / broad>
+跨病种/跨场景迁移参考：<可留空，或写同技术可参考的病种/器官/任务>
 ```
 
 ## 使用边界
