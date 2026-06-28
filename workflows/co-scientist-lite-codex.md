@@ -32,6 +32,7 @@ python3 tools/co_scientist_lite.py \
   --objective "<选择或自定义 objective>" \
   --scope "<组合或自定义 scope>" \
   --depth standard \
+  --mode standard \
   --journal-focus top-journals
 ```
 
@@ -58,6 +59,33 @@ python3 tools/co_scientist_lite.py \
 - `top-journals`：默认值。先用顶刊/高影响文献锚定研究方向，再补专科直接证据。
 - `balanced`：高影响方向、专科直接证据、指南和临床试验平衡纳入。
 - `direct`：优先 exact-match 直接证据，顶刊主要用于机制背景和前沿方向。
+
+### 方式 C：No-database multi-agent simulation
+
+```bash
+python3 tools/co_scientist_lite.py \
+  --topic "<一句话研究问题>" \
+  --objective "生成可验证假设并筛选 Top 3 假设" \
+  --scope "偏转化医学；优先近期顶刊方向和直接证据" \
+  --mode multi-agent \
+  --rounds 2 \
+  --generators mechanism,translation,methods \
+  --reviewers evidence,methods,translation \
+  --ranking tournament
+```
+
+这个模式仿真以下结构：
+
+- `Supervisor agent`：拆题、规划、定义成功标准和停止条件。
+- `Evidence agent`：使用当前会话可用的实时搜索能力形成证据表。
+- `Generation agents`：从不同视角生成候选假设。
+- `Proximity agent`：去重、聚类、合并相似假设。
+- `Reflection agents`：从证据、方法学和转化可行性做虚拟同行评审。
+- `Ranking agent`：用 score 或 tournament 排序。
+- `Evolution agent`：对高分假设做 refine/combine/split/reject。
+- `Meta-review agent`：综合输出最终 Top 3 和验证路线。
+
+边界：不接 ChEMBL、UniProt、AlphaFold，不建本地文献库；这是结构化角色仿真，不是 Google Co-Scientist 的复刻。
 
 保存一份任务请求：
 

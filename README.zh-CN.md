@@ -20,6 +20,7 @@ python3 tools/co_scientist_lite.py \
   --objective "<选择或自定义 objective>" \
   --scope "<组合或自定义 scope>" \
   --depth standard \
+  --mode standard \
   --journal-focus top-journals
 ```
 
@@ -42,6 +43,24 @@ Scope 可选：
 - `机制研究优先；允许追溯奠基文献；标明证据等级`
 - `影像、病理、多组学、临床结局均可纳入`
 - `仅用于科研构思；不输出个人化诊断或治疗建议`
+
+## 多 agent 仿真模式
+
+使用 `--mode multi-agent` 可以生成一个不接数据库的 Co-Scientist-inspired 多 agent 仿真 prompt：
+
+```bash
+python3 tools/co_scientist_lite.py \
+  --topic "<一句话研究问题>" \
+  --objective "生成可验证假设并筛选 Top 3 假设" \
+  --scope "偏转化医学；优先近期顶刊方向和直接证据" \
+  --mode multi-agent \
+  --rounds 2 \
+  --generators mechanism,translation,methods \
+  --reviewers evidence,methods,translation \
+  --ranking tournament
+```
+
+这个模式会仿真 supervisor、evidence agent、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。
 
 保存生成的任务提示：
 

@@ -20,6 +20,7 @@ python3 tools/co_scientist_lite.py \
   --objective "<choose or customize an objective>" \
   --scope "<combine or customize scope constraints>" \
   --depth standard \
+  --mode standard \
   --journal-focus top-journals
 ```
 
@@ -42,6 +43,24 @@ Scope options:
 - `Mechanism-first; allow foundational literature; label evidence levels`
 - `Imaging, pathology, multi-omics, and clinical outcomes may be included`
 - `For research ideation only; do not provide personalized diagnosis or treatment advice`
+
+## Multi-agent Simulation
+
+Use `--mode multi-agent` to generate a no-database, Co-Scientist-inspired multi-agent simulation prompt:
+
+```bash
+python3 tools/co_scientist_lite.py \
+  --topic "<one-sentence research question>" \
+  --objective "Generate testable hypotheses and select the top 3" \
+  --scope "Translational medicine focus; prioritize recent high-impact and direct evidence" \
+  --mode multi-agent \
+  --rounds 2 \
+  --generators mechanism,translation,methods \
+  --reviewers evidence,methods,translation \
+  --ranking tournament
+```
+
+This mode simulates the structure of a supervisor, evidence agent, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.
 
 To save the generated task prompt:
 

@@ -19,6 +19,9 @@
 时间范围：
 <time_window>
 
+执行模式：
+<standard 或 multi-agent>
+
 文献优先级：
 默认采用“顶刊/高影响证据优先，但不排除专科直接证据”。先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、PNAS、Radiology/European Radiology/Medical Image Analysis 等综合、医学、肿瘤、影像和方法学高影响来源锚定研究方向；随后补充最直接相关的专科期刊证据。不得只因期刊级别低而排除直接临床证据，也不得把期刊级别当作研究质量的唯一代理指标。
 
@@ -77,6 +80,54 @@
      - 不确定性和待补证据
      - 参考链接
 ```
+
+## Multi-agent simulation mode
+
+当任务要求 `multi-agent` 模式时，使用下面的 no-database Co-Scientist-inspired 结构。它是单次 Codex 会话中的结构化角色仿真，不是 Google Co-Scientist 的复刻，也不代表真实独立 agent 并行运行。
+
+```text
+Supervisor agent
+- 拆解研究问题，定义成功标准、搜索策略、排除项和停止条件。
+- 维护 hypothesis pool，安排后续 agent 的输入输出。
+
+Evidence agent
+- 使用当前会话可用的实时搜索能力形成证据表。
+- 只使用公开网页、论文页面、摘要、指南和用户材料。
+- 不接入本地文献库，也不调用 ChEMBL、UniProt、AlphaFold 等专用数据库，除非用户另行明确要求。
+
+Generation agents
+- 从多个视角生成候选假设，例如 mechanism、translation、methods、AI、clinical。
+- 每个视角至少提出 2-3 条候选假设。
+
+Proximity agent
+- 对候选假设去重、聚类、合并相似项。
+- 输出 hypothesis clusters，说明共同机制、差异点和覆盖空白。
+
+Reflection agents
+- 从 evidence、methods、translation、clinical feasibility 等角度做虚拟同行评审。
+- 输出 review matrix，列明支持证据、反证、混杂、偏倚、可行性和关键否决项。
+
+Ranking agent
+- 使用 score 或 tournament 排序。
+- 若使用 tournament，进行成对比较，输出胜负理由、关键否决项和最终积分/排序。
+
+Evolution agent
+- 对高分假设进行 1-2 轮 refine、combine、split 或 reject。
+- 每轮都记录假设变化和变化理由。
+
+Meta-review agent
+- 综合 evidence、reviews、ranking 和 evolution。
+- 输出最终 Top 3、最低成本验证路线、失败条件和待补证据。
+```
+
+Multi-agent 模式的额外输出：
+
+- `hypothesis pool`
+- `hypothesis clusters`
+- `review matrix`
+- `tournament/ranking log`
+- `evolution log`
+- `final meta-review`
 
 ## 最小输入块
 
