@@ -22,6 +22,9 @@ DEFAULT_REVIEWERS = "evidence,methods,translation"
 DEFAULT_RANKING = "tournament"
 DEFAULT_EXPANSION_LEVEL = "focused"
 DEFAULT_TRANSFER_DOMAINS = "liver,thyroid,lymph-node,kidney,prostate"
+DEFAULT_REFERENCE_STYLE = "vancouver"
+DEFAULT_JOURNAL_METRICS = "impact-factor"
+DEFAULT_IMPACT_FACTOR_YEAR = "2025"
 
 JOURNAL_FOCUS_INSTRUCTIONS = {
     "top-journals": (
@@ -41,6 +44,22 @@ JOURNAL_FOCUS_INSTRUCTIONS = {
     ),
 }
 
+REFERENCE_STYLE_INSTRUCTIONS = {
+    "vancouver": (
+        "参考文献采用 Vancouver/NLM 风格：Authors. Title. Journal. Year;"
+        "Volume(Issue):Pages. doi: DOI. PMID: PMID. "
+        "作者超过 6 位时可列前 6 位后加 et al。"
+    ),
+    "nature": (
+        "参考文献采用 Nature 风格：Authors. Title. Journal volume, pages (year). "
+        "doi: DOI. PMID: PMID."
+    ),
+    "apa": (
+        "参考文献采用 APA 风格：Authors. (Year). Title. Journal, volume(issue), pages. "
+        "https://doi.org/DOI. PMID: PMID."
+    ),
+}
+
 
 def normalize_list(value: str) -> str:
     items = [item.strip() for item in value.split(",") if item.strip()]
@@ -55,6 +74,63 @@ def slugify(text: str, max_length: int = 48) -> str:
     text = re.sub(r"\s+", "-", text.strip())
     text = re.sub(r"[^\w\-\u4e00-\u9fff]+", "", text)
     return text[:max_length].strip("-") or "co-scientist-lite"
+
+
+def build_reference_instructions(args: argparse.Namespace) -> str:
+    citation_rule = REFERENCE_STYLE_INSTRUCTIONS[args.reference_style]
+    if args.journal_metrics == "none":
+        metrics_rule = "本轮不要求补充期刊指标；仍需核验 DOI/PMID 和期刊名。"
+    else:
+        if args.impact_factor_source:
+            metrics_source = (
+                f"优先使用用户提供的 IF/JCR 表：{args.impact_factor_source}。"
+                "最终报告只能写来源文件名或“用户提供的 IF 表”，不要暴露本地绝对路径。"
+            )
+        else:
+            metrics_source = (
+                "优先使用用户在当前会话提供的 IF/JCR 表；若未提供，则用实时搜索可核验来源。"
+            )
+        metrics_rule = (
+            f"期刊指标要求：为每条论文补充最新可核验影响因子 IF 和分区，默认年份为 {args.impact_factor_year}。"
+            f"在参考文献条目末尾追加：IF: x.x (JCR {args.impact_factor_year}; Qx)。"
+            f"{metrics_source}"
+            "若使用表格来源，优先匹配期刊全称，其次匹配标准缩写；可识别字段包括全称、简称、影响因子、Q分区。"
+            "匹配不到或无法核验时必须写“IF: 未匹配/未核验”，不得猜测或补造。"
+            "IF 只作为期刊背景信息，不得替代研究设计质量、样本量、偏倚风险和证据距离判断。"
+        )
+    return f"{citation_rule}\n{metrics_rule}"
+
+
+def build_output_requirements(args: argparse.Namespace) -> str:
+    if args.journal_metrics == "none":
+        evidence_columns = (
+            "规范参考文献、期刊、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID"
+        )
+        reference_detail = (
+            "参考文献列表必须使用指定引用格式；每条论文都要给 DOI/PMID（能核验时）和链接。"
+        )
+        uncertainty_detail = (
+            "证据不足或引用信息无法核验时明确写“不足/未核验”，不要补造结论。"
+        )
+    else:
+        evidence_columns = (
+            "规范参考文献、期刊、IF、Q分区、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID"
+        )
+        reference_detail = (
+            "参考文献列表必须使用指定引用格式；每条论文都要给 DOI/PMID（能核验时）、IF/Q分区（能匹配时）和链接。"
+        )
+        uncertainty_detail = (
+            "证据不足、IF 匹配失败或引用信息无法核验时明确写“不足/未核验/未匹配”，不要补造结论。"
+        )
+
+    return f"""1. 先给出窄化后的可执行研究问题和成功标准。
+2. 输出检索日志、证据表、假设表、反方审查、排序表、Top 3 验证方案。
+3. 证据表至少包含：{evidence_columns}。
+4. {reference_detail}
+5. 预印本、综述、动物/体外研究、回顾性研究、RCT、指南要分层标注。
+6. 单独标注“顶刊/高影响文献提供的研究方向”和“专科直接证据提供的可验证事实”，不要混为同一种证据。
+7. {uncertainty_detail}
+8. 结尾列出医疗转化前景、关键风险、待补证据和规范参考文献。"""
 
 
 def build_prompt(args: argparse.Namespace) -> str:
@@ -87,17 +163,14 @@ def build_prompt(args: argparse.Namespace) -> str:
 
 医疗安全边界：{args.medical_boundary}
 
+参考文献格式和期刊指标：
+{build_reference_instructions(args)}
+
 {mode_instructions}
 
 ## 输出要求
 
-1. 先给出窄化后的可执行研究问题和成功标准。
-2. 输出检索日志、证据表、假设表、反方审查、排序表、Top 3 验证方案。
-3. 所有论文、指南、数据库页面都要给链接；能核验 DOI/PMID 时写出 DOI/PMID。
-4. 预印本、综述、动物/体外研究、回顾性研究、RCT、指南要分层标注。
-5. 单独标注“顶刊/高影响文献提供的研究方向”和“专科直接证据提供的可验证事实”，不要混为同一种证据。
-6. 证据不足时明确写“不足”，不要补造结论。
-7. 结尾列出医疗转化前景、关键风险和待补证据。
+{build_output_requirements(args)}
 """
 
 
@@ -249,6 +322,30 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Evidence priority: top-journals anchors directions, balanced mixes "
             "high-impact and direct evidence, direct prioritizes exact-match studies."
+        ),
+    )
+    parser.add_argument(
+        "--reference-style",
+        choices=tuple(REFERENCE_STYLE_INSTRUCTIONS),
+        default=DEFAULT_REFERENCE_STYLE,
+        help="Reference citation style for the final report.",
+    )
+    parser.add_argument(
+        "--journal-metrics",
+        choices=("none", "impact-factor"),
+        default=DEFAULT_JOURNAL_METRICS,
+        help="Whether the report should include journal metrics such as IF and quartile.",
+    )
+    parser.add_argument(
+        "--impact-factor-year",
+        default=DEFAULT_IMPACT_FACTOR_YEAR,
+        help="Impact factor year label to use when journal metrics are requested.",
+    )
+    parser.add_argument(
+        "--impact-factor-source",
+        help=(
+            "Optional path or description for a journal metrics spreadsheet. "
+            "Expected columns can include full journal title, abbreviation, IF, and quartile."
         ),
     )
     parser.add_argument(

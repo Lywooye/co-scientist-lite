@@ -21,7 +21,9 @@ python3 tools/co_scientist_lite.py \
   --scope "<组合或自定义 scope>" \
   --depth standard \
   --mode standard \
-  --journal-focus top-journals
+  --journal-focus top-journals \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 `--journal-focus` 默认值为 `top-journals`，表示先用顶刊/高影响文献锚定研究方向，再补充最直接相关的专科证据。对于非常窄的临床问题，可以使用 `--journal-focus direct`，让 exact-match 直接证据优先于期刊层级。
@@ -44,6 +46,21 @@ Scope 可选：
 - `影像、病理、多组学、临床结局均可纳入`
 - `仅用于科研构思；不输出个人化诊断或治疗建议`
 
+## 参考文献格式和影响因子
+
+生成的报告默认会要求使用规范参考文献格式，并在能够核验时补充期刊影响因子和 Q 分区。
+
+```bash
+python3 tools/co_scientist_lite.py \
+  --topic "<一句话研究问题>" \
+  --reference-style vancouver \
+  --journal-metrics impact-factor \
+  --impact-factor-year 2025 \
+  --impact-factor-source "/path/to/journal-impact-factors.xlsx"
+```
+
+`--impact-factor-source` 是可选项，可以指向 JCR/IF 表格。表格最好包含期刊全称、简称、影响因子、Q分区等列。若某个期刊匹配不到，生成的 prompt 会要求报告写“IF: 未匹配/未核验”，不能猜测或补造。
+
 ## 多 agent 仿真模式
 
 使用 `--mode multi-agent` 可以生成一个不接数据库的 Co-Scientist-inspired 多 agent 仿真 prompt：
@@ -59,7 +76,9 @@ python3 tools/co_scientist_lite.py \
   --reviewers evidence,methods,translation \
   --ranking tournament \
   --expansion-level focused \
-  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 这个模式会仿真 supervisor、evidence agent、search expansion agent、cross-disease transfer agent、evidence-distance classifier、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。

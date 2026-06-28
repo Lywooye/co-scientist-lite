@@ -21,7 +21,9 @@ python3 tools/co_scientist_lite.py \
   --scope "<combine or customize scope constraints>" \
   --depth standard \
   --mode standard \
-  --journal-focus top-journals
+  --journal-focus top-journals \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 `--journal-focus` defaults to `top-journals`, which uses high-impact journals to anchor research directions while still requiring direct specialty evidence for concrete claims. Use `--journal-focus direct` for narrow clinical questions where exact-match evidence matters more than journal tier.
@@ -44,6 +46,21 @@ Scope options:
 - `Imaging, pathology, multi-omics, and clinical outcomes may be included`
 - `For research ideation only; do not provide personalized diagnosis or treatment advice`
 
+## Reference Formatting and Journal Metrics
+
+Reports are prompted to format references in a standard citation style and, by default, add journal impact factors when they can be verified.
+
+```bash
+python3 tools/co_scientist_lite.py \
+  --topic "<one-sentence research question>" \
+  --reference-style vancouver \
+  --journal-metrics impact-factor \
+  --impact-factor-year 2025 \
+  --impact-factor-source "/path/to/journal-impact-factors.xlsx"
+```
+
+`--impact-factor-source` is optional. When provided, it should point to a journal metrics spreadsheet with columns such as full journal title, abbreviation, impact factor, and quartile. If a journal cannot be matched, the generated prompt asks the assistant to write `IF: unmatched/unverified` rather than guessing.
+
 ## Multi-agent Simulation
 
 Use `--mode multi-agent` to generate a no-database, Co-Scientist-inspired multi-agent simulation prompt:
@@ -59,7 +76,9 @@ python3 tools/co_scientist_lite.py \
   --reviewers evidence,methods,translation \
   --ranking tournament \
   --expansion-level focused \
-  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 This mode simulates the structure of a supervisor, evidence agent, search expansion agent, cross-disease transfer agent, evidence-distance classifier, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.

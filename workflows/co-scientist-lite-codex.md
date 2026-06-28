@@ -33,7 +33,9 @@ python3 tools/co_scientist_lite.py \
   --scope "<组合或自定义 scope>" \
   --depth standard \
   --mode standard \
-  --journal-focus top-journals
+  --journal-focus top-journals \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 `--objective` 可选：
@@ -60,6 +62,26 @@ python3 tools/co_scientist_lite.py \
 - `balanced`：高影响方向、专科直接证据、指南和临床试验平衡纳入。
 - `direct`：优先 exact-match 直接证据，顶刊主要用于机制背景和前沿方向。
 
+`--reference-style` 可选：
+
+- `vancouver`：默认值。适合医学报告，格式为 Authors. Title. Journal. Year;Volume(Issue):Pages. doi: DOI. PMID: PMID.
+- `nature`：适合偏 Nature 风格的参考文献列表。
+- `apa`：适合更通用的作者-年份风格。
+
+`--journal-metrics` 可选：
+
+- `impact-factor`：默认值。尽量给每条论文补充 IF 和 Q 分区。
+- `none`：不要求期刊指标，但仍需核验 DOI/PMID。
+
+如果有 JCR/IF 表格，可以加：
+
+```bash
+--impact-factor-year 2025 \
+--impact-factor-source "/path/to/journal-impact-factors.xlsx"
+```
+
+IF 表建议包含期刊全称、简称、影响因子、Q分区。匹配不到的期刊必须写“IF: 未匹配/未核验”，不能猜测。
+
 ### 方式 C：No-database multi-agent simulation
 
 ```bash
@@ -73,13 +95,16 @@ python3 tools/co_scientist_lite.py \
   --reviewers evidence,methods,translation \
   --ranking tournament \
   --expansion-level focused \
-  --transfer-domains liver,thyroid,lymph-node,kidney,prostate
+  --transfer-domains liver,thyroid,lymph-node,kidney,prostate \
+  --reference-style vancouver \
+  --journal-metrics impact-factor
 ```
 
 这个模式仿真以下结构：
 
 - `Supervisor agent`：拆题、规划、定义成功标准和停止条件。
 - `Evidence agent`：使用当前会话可用的实时搜索能力形成证据表。
+- `Journal Metrics step`：按规范格式整理参考文献，并尽量匹配 IF/Q 分区。
 - `Search Expansion agent`：从 topic 拆出概念组，生成 core、adjacent、methods、cross-disease transfer 等检索式。
 - `Cross-Disease Transfer agent`：检索同技术在其他病种/器官中的方法学启发，但不把它当作目标病种的直接临床证据。
 - `Evidence Distance Classifier`：给每条证据标注 core、adjacent、cross-disease transfer、mechanism only、methods only 或 high-impact anchor。
@@ -115,6 +140,7 @@ python3 tools/co_scientist_lite.py \
 - 每条假设的反方审查。
 - 按机制可信度、证据强度、新颖性、实验可行性、医疗转化价值、风险可控性打分。
 - Top 3 的最小验证方案。
+- 规范参考文献列表，且每条论文尽量包含 DOI/PMID、IF、Q分区；无法匹配时明确写未匹配/未核验。
 - 明确的不确定性和不能过度解读的地方。
 
 ## 本地归档建议

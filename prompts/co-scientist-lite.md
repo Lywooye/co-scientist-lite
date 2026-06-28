@@ -28,6 +28,15 @@
 跨病种/跨场景迁移参考：
 <例如 liver, thyroid, lymph-node, kidney, prostate；只作为方法迁移启发>
 
+参考文献格式：
+<vancouver / nature / apa；默认 vancouver>
+
+期刊指标：
+<impact-factor / none；默认 impact-factor>
+
+IF 来源：
+<可选：用户提供的 JCR/IF 表或实时可核验来源；最终报告不要暴露本地绝对路径>
+
 文献优先级：
 默认采用“顶刊/高影响证据优先，但不排除专科直接证据”。先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、PNAS、Radiology/European Radiology/Medical Image Analysis 等综合、医学、肿瘤、影像和方法学高影响来源锚定研究方向；随后补充最直接相关的专科期刊证据。不得只因期刊级别低而排除直接临床证据，也不得把期刊级别当作研究质量的唯一代理指标。
 
@@ -39,8 +48,10 @@
 2. 必须做实时文献搜索。优先使用 PubMed/PMC、Nature/Science/Cell/NEJM/Lancet/JAMA/BMJ/PNAS、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、Radiology/European Radiology/Medical Image Analysis、ClinicalTrials.gov、WHO/FDA/NIH/专业指南、bioRxiv/medRxiv/arXiv、Google Scholar/Semantic Scholar/OpenAlex 能定位到的论文页面。
 3. 记录检索日期、检索式、来源类型和关键链接。预印本、综述、动物实验、体外实验、回顾性临床研究、RCT、指南必须分层标注；同时标注“顶刊/高影响方向锚点”和“专科直接证据”。
 4. 不编造 DOI、PMID、作者、期刊或结果。找不到原文时，明确写“未能核验全文/仅核验摘要或页面信息”。
-5. 证据不足时，不要硬凑结论；把不足转化为待验证假设或排除标准。
-6. 所有医学迁移建议都必须写清楚：适用场景、需要的数据、最低验证路径、失败风险、不可过度解读之处。
+5. 参考文献必须使用指定格式。默认采用 Vancouver/NLM 风格：Authors. Title. Journal. Year;Volume(Issue):Pages. doi: DOI. PMID: PMID. 作者超过 6 位时可列前 6 位后加 et al.
+6. 若期刊指标设为 impact-factor，每条论文尽量补充最新可核验 IF 和 Q 分区，并在条目末尾追加 IF: x.x (JCR year; Qx)。若用户提供 IF/JCR 表，优先按期刊全称匹配，其次按标准缩写匹配；可识别字段包括全称、简称、影响因子、Q分区。匹配不到时写“IF: 未匹配/未核验”，不得猜测。IF 只作为期刊背景信息，不替代研究质量评价。
+7. 证据不足时，不要硬凑结论；把不足转化为待验证假设或排除标准。
+8. 所有医学迁移建议都必须写清楚：适用场景、需要的数据、最低验证路径、失败风险、不可过度解读之处。
 
 流程：
 1. Scope
@@ -52,7 +63,7 @@
    - 输出检索日志表：数据库/站点、检索式、日期、筛选理由、关键链接。
 
 3. Evidence Extraction
-   - 输出证据表，列至少包括：编号、文献/来源、期刊/来源层级、研究类型、对象/模型、核心发现、支持的机制、主要限制、链接/DOI/PMID。
+   - 输出证据表，列至少包括：编号、规范参考文献、期刊、来源层级、研究类型、对象/模型、核心发现、支持的机制、主要限制、链接/DOI/PMID。若启用期刊指标，增加 IF 和 Q分区列。
    - 将强证据和弱证据分开，不把综述观点当作一手证据。
    - 单独总结顶刊/高影响文献指向的研究趋势，再说明直接专科证据是否支持这些趋势。
 
@@ -84,7 +95,7 @@
      - Top 3 验证方案
      - 医疗转化前景
      - 不确定性和待补证据
-     - 参考链接
+     - 规范参考文献
 ```
 
 ## Multi-agent simulation mode
@@ -100,6 +111,8 @@ Evidence agent
 - 使用当前会话可用的实时搜索能力形成证据表。
 - 只使用公开网页、论文页面、摘要、指南和用户材料。
 - 不接入本地文献库，也不调用 ChEMBL、UniProt、AlphaFold 等专用数据库，除非用户另行明确要求。
+- 为每条论文核验 DOI/PMID，并按指定格式输出规范参考文献。
+- 若要求期刊指标，使用用户提供的 IF/JCR 表或实时可核验来源补充 IF/Q 分区；匹配不到时明确写未匹配/未核验。若期刊指标为 none，不输出 IF/Q 约束。
 
 Search Expansion agent
 - 先把 topic 拆成概念组：疾病/对象、技术、相邻技术、任务/终点、方法学、机制。
@@ -147,6 +160,7 @@ Multi-agent 模式的额外输出：
 - `query expansion map`
 - `evidence distance table`
 - `cross-disease transfer table`
+- `journal metrics / IF matching notes`
 - `hypothesis pool`
 - `hypothesis clusters`
 - `review matrix`
@@ -163,6 +177,9 @@ Multi-agent 模式的额外输出：
 输出深度：<quick / standard / deep>
 搜索扩展：<none / focused / broad>
 跨病种/跨场景迁移参考：<可留空，或写同技术可参考的病种/器官/任务>
+参考文献格式：<vancouver / nature / apa>
+期刊指标：<impact-factor / none>
+IF 来源：<可选：上传表格或可核验来源>
 ```
 
 ## 使用边界
