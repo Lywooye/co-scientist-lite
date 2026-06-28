@@ -20,13 +20,34 @@ python3 tools/co_scientist_lite.py \
   --objective "<选择或自定义 objective>" \
   --scope "<组合或自定义 scope>" \
   --depth standard \
-  --mode standard \
+  --mode multi-agent \
   --journal-focus top-journals \
   --reference-style vancouver \
   --journal-metrics impact-factor
 ```
 
-`--journal-focus` 默认值为 `top-journals`，表示先用顶刊/高影响文献锚定研究方向，再补充最直接相关的专科证据。对于非常窄的临床问题，可以使用 `--journal-focus direct`，让 exact-match 直接证据优先于期刊层级。
+## 常用可选项
+
+大多数参数都是可选的。工具现在默认使用 `--mode multi-agent`。
+
+| 参数 | 可选值 | 默认值 | 含义 |
+|---|---|---:|---|
+| `--mode` | `multi-agent`, `standard` | `multi-agent` | 工作流结构。`multi-agent` 仿真 Co-Scientist 风格的多角色流程；`standard` 使用 Scope -> Search -> Evidence -> Hypothesis -> Review -> Ranking 的线性流程。 |
+| `--depth` | `quick`, `standard`, `deep` | `standard` | 输出详略程度。 |
+| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | 文献优先级。`top-journals` 用顶刊/高影响文献锚定方向，同时保留专科直接证据。 |
+| `--reference-style` | `vancouver`, `nature`, `apa` | `vancouver` | 最终参考文献格式。 |
+| `--journal-metrics` | `impact-factor`, `none` | `impact-factor` | 是否要求匹配 IF 和 Q 分区。 |
+| `--impact-factor-year` | 任意年份标签 | `2025` | 生成 prompt 时使用的 IF 年份标签。 |
+| `--impact-factor-source` | 文件路径或来源描述 | 无 | 可选的期刊指标来源。省略时，如果本机存在 `local/journal_metrics/jcr_2025.jsonl`，工具会自动引用。 |
+| `--rounds` | >= 1 的整数 | `2` | `multi-agent` 模式下的假设演化/修订轮数。 |
+| `--generators` | 逗号分隔列表 | `mechanism,translation,methods` | `multi-agent` 模式下的假设生成视角。 |
+| `--reviewers` | 逗号分隔列表 | `evidence,methods,translation` | `multi-agent` 模式下的审查视角。 |
+| `--ranking` | `tournament`, `score` | `tournament` | `multi-agent` 模式下的排序方式。 |
+| `--expansion-level` | `none`, `focused`, `broad` | `focused` | 检索扩展范围。`focused` 会加入相邻检索词和有限跨病种方法迁移。 |
+| `--transfer-domains` | 逗号分隔列表 | `liver,thyroid,lymph-node,kidney,prostate` | 可参考的方法迁移病种或器官场景。 |
+| `--save` | flag | 关闭 | 将生成的任务提示保存到 `outputs/co_scientist_requests/`。 |
+| `--output` | 文件路径 | 无 | 将生成的任务提示保存到指定路径。 |
+| `--lookup-if` | 期刊名 | 无 | 查询本地 IF/Q 指标后退出，可重复使用。 |
 
 Objective 可选：
 

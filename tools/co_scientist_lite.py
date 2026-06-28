@@ -18,7 +18,7 @@ from pathlib import Path
 DEFAULT_TIME_WINDOW = "优先近 5 年；必要时追溯奠基文献；必须写明检索日期"
 DEFAULT_MEDICAL_BOUNDARY = "科研/转化医学假设，不输出个人化诊断或治疗建议"
 DEFAULT_JOURNAL_FOCUS = "top-journals"
-DEFAULT_MODE = "standard"
+DEFAULT_MODE = "multi-agent"
 DEFAULT_GENERATORS = "mechanism,translation,methods"
 DEFAULT_REVIEWERS = "evidence,methods,translation"
 DEFAULT_RANKING = "tournament"

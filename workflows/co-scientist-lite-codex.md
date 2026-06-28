@@ -32,11 +32,13 @@ python3 tools/co_scientist_lite.py \
   --objective "<选择或自定义 objective>" \
   --scope "<组合或自定义 scope>" \
   --depth standard \
-  --mode standard \
+  --mode multi-agent \
   --journal-focus top-journals \
   --reference-style vancouver \
   --journal-metrics impact-factor
 ```
+
+默认执行模式现在是 `multi-agent`。如果只想走线性流程，可以显式加 `--mode standard`。
 
 `--objective` 可选：
 
@@ -62,6 +64,17 @@ python3 tools/co_scientist_lite.py \
 - `balanced`：高影响方向、专科直接证据、指南和临床试验平衡纳入。
 - `direct`：优先 exact-match 直接证据，顶刊主要用于机制背景和前沿方向。
 
+`--mode` 可选：
+
+- `multi-agent`：默认值。仿真 supervisor、evidence、search expansion、cross-disease transfer、review、ranking、evolution、meta-review 等角色结构。
+- `standard`：线性顺序流程，按 Scope -> Search -> Evidence Extraction -> Hypothesis Generation -> Red Team -> Ranking -> Validation Plan -> Final Output 执行。
+
+`--depth` 可选：
+
+- `quick`：快速概览。
+- `standard`：默认值。完整但不过度展开。
+- `deep`：更长、更细的证据表、假设审查和验证方案。
+
 `--reference-style` 可选：
 
 - `vancouver`：默认值。适合医学报告，格式为 Authors. Title. Journal. Year;Volume(Issue):Pages. doi: DOI. PMID: PMID.
@@ -72,6 +85,15 @@ python3 tools/co_scientist_lite.py \
 
 - `impact-factor`：默认值。尽量给每条论文补充 IF 和 Q 分区。
 - `none`：不要求期刊指标，但仍需核验 DOI/PMID。
+
+`multi-agent` 模式相关可选项：
+
+- `--rounds`：默认 `2`，控制假设演化/修订轮数。
+- `--generators`：默认 `mechanism,translation,methods`，控制假设生成视角。
+- `--reviewers`：默认 `evidence,methods,translation`，控制审查视角。
+- `--ranking`：默认 `tournament`，可选 `score`。
+- `--expansion-level`：默认 `focused`，可选 `none`、`focused`、`broad`。
+- `--transfer-domains`：默认 `liver,thyroid,lymph-node,kidney,prostate`，用于方法迁移参考。
 
 如果有 JCR/IF 表格，可以加：
 

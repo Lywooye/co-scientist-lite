@@ -20,13 +20,34 @@ python3 tools/co_scientist_lite.py \
   --objective "<choose or customize an objective>" \
   --scope "<combine or customize scope constraints>" \
   --depth standard \
-  --mode standard \
+  --mode multi-agent \
   --journal-focus top-journals \
   --reference-style vancouver \
   --journal-metrics impact-factor
 ```
 
-`--journal-focus` defaults to `top-journals`, which uses high-impact journals to anchor research directions while still requiring direct specialty evidence for concrete claims. Use `--journal-focus direct` for narrow clinical questions where exact-match evidence matters more than journal tier.
+## Common Options
+
+Most options are optional. The tool now defaults to `--mode multi-agent`.
+
+| Option | Values | Default | Meaning |
+|---|---|---:|---|
+| `--mode` | `multi-agent`, `standard` | `multi-agent` | Workflow structure. `multi-agent` simulates Co-Scientist-style roles; `standard` uses a linear Scope -> Search -> Evidence -> Hypothesis -> Review -> Ranking flow. |
+| `--depth` | `quick`, `standard`, `deep` | `standard` | Output detail level. |
+| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | Evidence priority. `top-journals` anchors directions in high-impact sources while preserving direct specialty evidence. |
+| `--reference-style` | `vancouver`, `nature`, `apa` | `vancouver` | Citation style for final references. |
+| `--journal-metrics` | `impact-factor`, `none` | `impact-factor` | Whether to request IF/Q quartile matching. |
+| `--impact-factor-year` | free text year label | `2025` | IF year label used in the generated prompt. |
+| `--impact-factor-source` | file path or source description | none | Optional journal metrics source. If omitted, the tool auto-detects `local/journal_metrics/jcr_2025.jsonl` when present. |
+| `--rounds` | integer >= 1 | `2` | Evolution/refinement rounds in `multi-agent` mode. |
+| `--generators` | comma-separated list | `mechanism,translation,methods` | Generation perspectives in `multi-agent` mode. |
+| `--reviewers` | comma-separated list | `evidence,methods,translation` | Review perspectives in `multi-agent` mode. |
+| `--ranking` | `tournament`, `score` | `tournament` | Ranking method in `multi-agent` mode. |
+| `--expansion-level` | `none`, `focused`, `broad` | `focused` | Search expansion breadth. `focused` adds adjacent terms and limited cross-disease transfer. |
+| `--transfer-domains` | comma-separated list | `liver,thyroid,lymph-node,kidney,prostate` | Method-transfer disease or organ contexts. |
+| `--save` | flag | off | Save the generated task prompt under `outputs/co_scientist_requests/`. |
+| `--output` | file path | none | Save the generated prompt to an explicit path. |
+| `--lookup-if` | journal name | none | Look up local IF/Q metrics and exit. Can be repeated. |
 
 Objective options:
 
