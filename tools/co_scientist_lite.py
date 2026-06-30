@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shlex
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -30,6 +31,40 @@ DEFAULT_REFERENCE_STYLE = "vancouver"
 DEFAULT_JOURNAL_METRICS = "impact-factor"
 DEFAULT_IMPACT_FACTOR_YEAR = "2025"
 DEFAULT_LOCAL_METRICS_DIR = Path("local") / "journal_metrics"
+
+MULTI_AGENT_ONLY_FLAGS = {
+    "--rounds": "evolution rounds",
+    "--generators": "generation perspectives",
+    "--reviewers": "review perspectives",
+    "--ranking": "multi-agent ranking method",
+    "--expansion-level": "search expansion breadth",
+    "--transfer-domains": "cross-disease transfer contexts",
+}
+
+HYPOTHESIS_POOL_JSON_CONTRACT = """```json
+{
+  "run_id": "<search-date-or-short-run-id>",
+  "topic": "<research topic>",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "title": "<short title>",
+      "claim": "<testable if-then claim>",
+      "mechanism": "<proposed mechanism>",
+      "novelty_level": "完全新颖 | 机制已有但应用场景新 | 靶点/技术已有但组合新 | 已有人做过，不算新颖 | 未核验",
+      "evidence_distance": "core | adjacent | cross-disease transfer | mechanism only | methods only | high-impact anchor",
+      "supporting_evidence_ids": ["E1", "E2"],
+      "key_assumptions": ["<necessary assumption>"],
+      "invalidating_assumptions": ["<assumption whose failure would invalidate the hypothesis>"],
+      "review_status": "<accepted | refine | reject | unresolved>",
+      "tournament_summary": "<pairwise wins/losses and decisive reasons>",
+      "validation_plan": "<minimum viable validation path>",
+      "risk_flags": ["<bias, feasibility, safety, or transfer-risk flag>"],
+      "next_step": "<concrete next action>"
+    }
+  ]
+}
+```"""
 
 JOURNAL_FOCUS_INSTRUCTIONS = {
     "top-journals": (
@@ -307,7 +342,14 @@ def build_output_requirements(args: argparse.Namespace) -> str:
 5. 预印本、综述、动物/体外研究、回顾性研究、RCT、指南要分层标注。
 6. 单独标注“顶刊/高影响文献提供的研究方向”和“专科直接证据提供的可验证事实”，不要混为同一种证据。
 7. {uncertainty_detail}
-8. 结尾列出医疗转化前景、关键风险、待补证据和规范参考文献。"""
+8. 对进入最终排序的假设输出 Deep Verification Review：拆成核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据，并标注哪些假定一旦失败会推翻该假设。
+9. 输出 Novelty Search Review：每条 Top 假设在标注新颖性前必须做针对性实时检索；无法完成核查时不得声称新颖，只能写“未核验”。新颖性分级限定为：完全新颖、机制已有但应用场景新、靶点/技术已有但组合新、已有人做过，不算新颖、未核验。
+10. 输出 Tournament Pairwise Log：multi-agent/tournament 模式必须给出成对比较记录；高分候选需要更细的正反论证，低分候选可用简化比较。比较时必须检查顺序/位置偏倚，必要时反向顺序复核。
+11. 输出 Meta-review Feedback for next run：列出反复出现的薄弱点、缺失检索方向、下轮 reviewer/agent 调整、应避免的假设模式、值得扩展的方向，以及建议的下一轮 scope/transfer-domains/reviewers。
+12. 结尾列出医疗转化前景、关键风险、待补证据和规范参考文献。
+13. 最后追加一个 fenced JSON 块，标题写 `hypothesis_pool.json`，使用下面字段，便于后续机器解析：
+
+{HYPOTHESIS_POOL_JSON_CONTRACT}"""
 
 
 def build_prompt(args: argparse.Namespace) -> str:
@@ -400,10 +442,13 @@ Agent 结构：
 8. Reflection agents
    - 审查视角：{normalize_list(args.reviewers)}
    - 对每条候选假设进行证据、方法学、临床转化和偏倚风险审查。
+   - 对进入最终排序的假设执行 deep verification：拆解关键假定、子假定和可推翻条件，逐条标注支持证据、反证和缺失证据。
+   - 新颖性判断前必须做针对性实时检索；未完成检索核查时只能标注“未核验”。
 
 9. Ranking agent
    - 排序方式：{args.ranking}
    - 若使用 tournament，则进行成对比较，给出胜负理由、关键否决项和最终积分/排序。
+   - 对高分候选进行更细的成对辩论，对低分候选使用简化比较；显式检查顺序/位置偏倚。
 
 10. Evolution agent
    - 进化轮数：{args.rounds}
@@ -413,15 +458,40 @@ Agent 结构：
 11. Meta-review agent
    - 综合 evidence、reviews、ranking 和 evolution，输出最终 Top 3。
    - 明确哪些结论来自强证据，哪些只是可验证设想。
+   - 提炼本轮反复出现的批评点，生成“下一轮运行反馈”，用于后续 scope、搜索词、reviewer 和 transfer-domains 调整。
 
 额外输出要求：
 
-- 输出 query expansion map、evidence distance table、cross-disease transfer table、hypothesis pool、clusters、review matrix、tournament/ranking log、evolution log。
+- 输出 query expansion map、evidence distance table、cross-disease transfer table、hypothesis pool、clusters、review matrix、deep verification review、novelty search review、tournament pairwise log、evolution log、meta-review feedback for next run、hypothesis_pool.json。
 - 不要把多 agent 仿真写成真实独立模型并行执行；应明确这是单次 Codex 会话中的结构化角色仿真。
 - 不接入 ChEMBL、UniProt、AlphaFold 或其他专用数据库，除非用户在当前会话中另行明确要求。"""
 
 
-def parse_args() -> argparse.Namespace:
+def explicit_option_flags(argv: list[str]) -> set[str]:
+    flags: set[str] = set()
+    for token in argv:
+        if token.startswith("--"):
+            flags.add(token.split("=", 1)[0])
+    return flags
+
+
+def warn_standard_mode_ignored_options(
+    args: argparse.Namespace, argv: list[str]
+) -> None:
+    if args.mode != "standard":
+        return
+    used_flags = sorted(explicit_option_flags(argv) & set(MULTI_AGENT_ONLY_FLAGS))
+    if not used_flags:
+        return
+    details = ", ".join(f"{flag} ({MULTI_AGENT_ONLY_FLAGS[flag]})" for flag in used_flags)
+    print(
+        "Warning: --mode standard uses the linear workflow; "
+        f"multi-agent-only options will be ignored or reduced: {details}",
+        file=sys.stderr,
+    )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate a reusable Codex prompt for Co-Scientist Lite."
     )
@@ -551,7 +621,7 @@ def parse_args() -> argparse.Namespace:
         "--output",
         help="Optional explicit output path. Overrides --save destination.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def write_output(content: str, args: argparse.Namespace) -> Path | None:
@@ -571,14 +641,16 @@ def write_output(content: str, args: argparse.Namespace) -> Path | None:
     return path
 
 
-def main() -> int:
-    args = parse_args()
+def main(argv: list[str] | None = None) -> int:
+    raw_argv = sys.argv[1:] if argv is None else argv
+    args = parse_args(raw_argv)
     if args.lookup_if:
         return print_if_lookup(args)
     if not args.topic:
         raise SystemExit("--topic is required unless --lookup-if is used")
     if args.rounds < 1:
         raise SystemExit("--rounds must be >= 1")
+    warn_standard_mode_ignored_options(args, raw_argv)
     resolve_impact_factor_source(args)
     content = build_prompt(args)
     saved_path = write_output(content, args)

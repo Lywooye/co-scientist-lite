@@ -64,6 +64,8 @@ python3 tools/co_scientist_lite.py \
 | `--output` | 文件路径 | 无 | 将生成的任务提示保存到指定路径。 |
 | `--lookup-if` | 期刊名 | 无 | 查询本地 IF/Q 指标后退出，可重复使用。 |
 
+当显式使用 `--mode standard` 时，`--rounds`、`--generators`、`--reviewers`、`--ranking`、`--expansion-level`、`--transfer-domains` 等 multi-agent 专属参数会被忽略，或只降级为线性流程中的普通提示。若这些参数和 `--mode standard` 同时显式传入，CLI 会在 stderr 给出提醒。
+
 Objective 可选：
 
 - `生成可验证假设并筛选 Top 3 假设`
@@ -103,6 +105,16 @@ python3 tools/co_scientist_lite.py --lookup-if "Radiology"
 这个模式会仿真 supervisor、evidence agent、search expansion agent、cross-disease transfer agent、evidence-distance classifier、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。
 
 `--expansion-level focused` 用来避免没有本地文献库时检索范围过窄：先从 topic 拆出疾病、技术、相邻技术、任务/终点、方法学和机制，再有限扩展检索式。`--transfer-domains` 用于指定可参考的跨病种/跨器官方法学场景；这些证据只能作为方法迁移和假设生成启发，不能直接支撑目标病种的临床有效性结论。
+
+## 输出契约
+
+生成的 prompt 现在会要求更严格的第一阶段输出契约：
+
+- `Deep Verification Review`：把进入最终排序的假设拆成核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据，并标注哪些假定一旦失败会推翻该假设。
+- `Novelty Search Review`：每条 Top 假设在标注新颖性前必须做针对性实时检索；无法完成核查时不得声称新颖，只能写“未核验”。
+- `Tournament Pairwise Log`：记录 tournament 排序的成对比较过程；高分候选需要更细的正反论证，低分候选可简化，并显式检查顺序/位置偏倚。
+- `Meta-review Feedback for next run`：总结反复出现的薄弱点、缺失检索方向、reviewer/agent 调整、应避免的假设模式，以及建议的下一轮 scope 或 transfer-domains。
+- `hypothesis_pool.json`：在最终输出末尾追加 fenced JSON 块，字段包括假设 ID、新颖性分级、evidence distance、支持证据编号、关键假定、可推翻假定、验证计划、风险标记和下一步。
 
 如果要保存生成的任务提示，在上面的完整模板后追加一个输出选项：
 

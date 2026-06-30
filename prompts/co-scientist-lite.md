@@ -52,6 +52,9 @@ IF 来源：
 6. 若期刊指标设为 impact-factor，每条论文尽量补充最新可核验 IF 和 Q 分区，并在条目末尾追加 IF: x.x (JCR year; Qx)。若用户提供 IF/JCR 表，优先按期刊全称匹配，其次按标准缩写匹配；可识别字段包括全称、简称、影响因子、Q分区。匹配不到时写“IF: 未匹配/未核验”，不得猜测。IF 只作为期刊背景信息，不替代研究质量评价。
 7. 证据不足时，不要硬凑结论；把不足转化为待验证假设或排除标准。
 8. 所有医学迁移建议都必须写清楚：适用场景、需要的数据、最低验证路径、失败风险、不可过度解读之处。
+9. 新颖性判断必须先做针对性实时检索。找不到对应文献时只能说“本轮未发现直接相同研究”；如果没有完成联网核查，不得声称新颖，只能标注“未核验”。
+10. 对进入最终排序的假设必须做 deep verification：拆成核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据，并标注哪些假定一旦失败会推翻假设。
+11. 最终输出必须包含可解析的 `hypothesis_pool.json` fenced JSON 块，便于后续自动处理。
 
 流程：
 1. Scope
@@ -75,15 +78,24 @@ IF 来源：
 5. Red Team
    - 对每条假设进行反方审查：反证、替代解释、混杂因素、发表偏倚、模型外推风险、临床不可行点。
 
-6. Ranking
+6. Deep Verification Review
+   - 对进入最终排序的假设逐条拆解：核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据。
+   - 标注 invalidating assumptions：哪些关键假定一旦不成立，会使该假设不能继续推进。
+
+7. Novelty Search Review
+   - 对每条 Top 假设做针对性实时检索，记录检索式和结论。
+   - 新颖性分级只能使用：完全新颖、机制已有但应用场景新、靶点/技术已有但组合新、已有人做过，不算新颖、未核验。
+
+8. Ranking
    - 按 1-5 分评价：机制可信度、证据强度、顶刊方向一致性、新颖性、实验可行性、医疗转化价值、风险可控性。
    - 给出总分和排序，但不要让总分掩盖关键否决项。
+   - 若使用 tournament，输出成对比较日志；高分候选需要更细论证，低分候选可简化。必须检查顺序/位置偏倚。
 
-7. Validation Plan
+9. Validation Plan
    - 给出 Top 3 假设的验证路线：体外/动物/类器官/多组学/回顾性数据/前瞻性研究，按最小成本到更强证据排序。
    - 写清楚样本、关键指标、阴性对照、停止条件和下一步决策。
 
-8. Final Output
+10. Final Output
    - 输出结构：
      - 一句话结论
      - 研究问题和边界
@@ -91,11 +103,16 @@ IF 来源：
      - 证据表
      - 假设表
      - 反方审查
+     - Deep Verification Review
+     - Novelty Search Review
      - 排序结果
+     - Tournament Pairwise Log
      - Top 3 验证方案
      - 医疗转化前景
      - 不确定性和待补证据
+     - Meta-review Feedback for next run
      - 规范参考文献
+     - `hypothesis_pool.json`
 ```
 
 ## Multi-agent simulation mode
@@ -141,10 +158,13 @@ Proximity agent
 Reflection agents
 - 从 evidence、methods、translation、clinical feasibility 等角度做虚拟同行评审。
 - 输出 review matrix，列明支持证据、反证、混杂、偏倚、可行性和关键否决项。
+- 对最终候选执行 deep verification：拆解关键假定、子假定和可推翻条件，逐条标注支持证据、反证和缺失证据。
+- 新颖性判断前必须做针对性实时检索；未完成检索核查时只能标注“未核验”。
 
 Ranking agent
 - 使用 score 或 tournament 排序。
 - 若使用 tournament，进行成对比较，输出胜负理由、关键否决项和最终积分/排序。
+- 对高分候选进行更细的成对辩论，对低分候选使用简化比较；显式检查顺序/位置偏倚。
 
 Evolution agent
 - 对高分假设进行 1-2 轮 refine、combine、split 或 reject。
@@ -153,6 +173,7 @@ Evolution agent
 Meta-review agent
 - 综合 evidence、reviews、ranking 和 evolution。
 - 输出最终 Top 3、最低成本验证路线、失败条件和待补证据。
+- 提炼本轮反复出现的批评点，输出下一轮运行反馈，用于后续 scope、搜索词、reviewer 和 transfer-domains 调整。
 ```
 
 Multi-agent 模式的额外输出：
@@ -164,9 +185,39 @@ Multi-agent 模式的额外输出：
 - `hypothesis pool`
 - `hypothesis clusters`
 - `review matrix`
-- `tournament/ranking log`
+- `deep verification review`
+- `novelty search review`
+- `tournament pairwise log`
 - `evolution log`
-- `final meta-review`
+- `meta-review feedback for next run`
+- `hypothesis_pool.json`
+
+`hypothesis_pool.json` 最低字段：
+
+```json
+{
+  "run_id": "<search-date-or-short-run-id>",
+  "topic": "<research topic>",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "title": "<short title>",
+      "claim": "<testable if-then claim>",
+      "mechanism": "<proposed mechanism>",
+      "novelty_level": "完全新颖 | 机制已有但应用场景新 | 靶点/技术已有但组合新 | 已有人做过，不算新颖 | 未核验",
+      "evidence_distance": "core | adjacent | cross-disease transfer | mechanism only | methods only | high-impact anchor",
+      "supporting_evidence_ids": ["E1", "E2"],
+      "key_assumptions": ["<necessary assumption>"],
+      "invalidating_assumptions": ["<assumption whose failure would invalidate the hypothesis>"],
+      "review_status": "<accepted | refine | reject | unresolved>",
+      "tournament_summary": "<pairwise wins/losses and decisive reasons>",
+      "validation_plan": "<minimum viable validation path>",
+      "risk_flags": ["<bias, feasibility, safety, or transfer-risk flag>"],
+      "next_step": "<concrete next action>"
+    }
+  ]
+}
+```
 
 ## 最小输入块
 

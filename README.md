@@ -64,6 +64,8 @@ Most options are optional. The tool now defaults to `--mode multi-agent`.
 | `--output` | file path | none | Save the generated prompt to an explicit path. |
 | `--lookup-if` | journal name | none | Look up local IF/Q metrics and exit. Can be repeated. |
 
+When `--mode standard` is explicitly used, multi-agent-only options such as `--rounds`, `--generators`, `--reviewers`, `--ranking`, `--expansion-level`, and `--transfer-domains` are ignored or reduced to the linear workflow. The CLI emits a warning if those options are explicitly passed with `--mode standard`.
+
 Objective options:
 
 - `Generate testable hypotheses and select the top 3`
@@ -103,6 +105,16 @@ python3 tools/co_scientist_lite.py --lookup-if "Radiology"
 This mode simulates the structure of a supervisor, evidence agent, search expansion agent, cross-disease transfer agent, evidence-distance classifier, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.
 
 Search expansion is intended to reduce topic over-narrowing when no local literature database is available. `--expansion-level focused` derives adjacent search terms from the topic and adds limited cross-disease method transfer. Cross-disease evidence is treated as method inspiration only; it cannot directly support clinical claims for the target disease.
+
+## Output Contract
+
+Generated prompts now require a stricter phase-one output contract:
+
+- `Deep Verification Review`: decompose each ranked hypothesis into the core claim, necessary assumptions, testable sub-assumptions, supporting evidence, counter-evidence or missing evidence, and assumptions that would invalidate the hypothesis.
+- `Novelty Search Review`: perform targeted live searches before assigning novelty. If live verification is unavailable, the novelty level must be marked as unverified rather than stated as novel.
+- `Tournament Pairwise Log`: record pairwise comparisons for tournament ranking, with deeper debate for high-scoring candidates and an explicit order-bias check.
+- `Meta-review Feedback for next run`: capture recurring weaknesses, missing search directions, reviewer or agent adjustments, hypothesis patterns to avoid, and recommended next-run scope or transfer-domain changes.
+- `hypothesis_pool.json`: append a fenced JSON block with stable fields for downstream parsing, including hypothesis IDs, novelty level, evidence distance, supporting evidence IDs, key assumptions, invalidating assumptions, validation plan, risk flags, and next step.
 
 To save the generated task prompt, add one output option to the full template above:
 

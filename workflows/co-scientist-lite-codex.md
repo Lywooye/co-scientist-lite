@@ -39,6 +39,7 @@ python3 tools/co_scientist_lite.py \
 ```
 
 默认执行模式现在是 `multi-agent`。如果只想走线性流程，可以显式加 `--mode standard`。
+当 `--mode standard` 和 multi-agent 专属参数同时显式传入时，CLI 会提示这些参数会被忽略或降级为线性流程提示。
 
 `--objective` 可选：
 
@@ -174,9 +175,14 @@ python3 tools/co_scientist_lite.py \
 - 8-15 条关键证据，且标明研究类型和链接。
 - 5-8 条可验证假设。
 - 每条假设的反方审查。
+- `Deep Verification Review`：拆解 Top 假设的核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据和可推翻条件。
+- `Novelty Search Review`：每条 Top 假设必须先经针对性实时检索再分级；未核查时只能写“未核验”。
 - 按机制可信度、证据强度、新颖性、实验可行性、医疗转化价值、风险可控性打分。
+- `Tournament Pairwise Log`：若使用 tournament 排序，给出成对比较、关键胜负理由和顺序/位置偏倚检查。
 - Top 3 的最小验证方案。
 - 规范参考文献列表，且每条论文尽量包含 DOI/PMID、IF、Q分区；无法匹配时明确写未匹配/未核验。
+- `Meta-review Feedback for next run`：总结本轮反复问题、缺失检索方向和下一轮参数调整建议。
+- `hypothesis_pool.json` fenced JSON 块，便于后续机器解析。
 - 明确的不确定性和不能过度解读的地方。
 
 ## 本地归档建议
