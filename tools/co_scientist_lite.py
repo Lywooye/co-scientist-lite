@@ -20,6 +20,8 @@ from pathlib import Path
 
 DEFAULT_TIME_WINDOW = "优先近 5 年；必要时追溯奠基文献；必须写明检索日期"
 DEFAULT_MEDICAL_BOUNDARY = "科研/转化医学假设，不输出个人化诊断或治疗建议"
+DEFAULT_RESEARCH_DOMAIN = "biomedical"
+DEFAULT_VENUE_FOCUS = "high-impact"
 DEFAULT_JOURNAL_FOCUS = "top-journals"
 DEFAULT_MODE = "multi-agent"
 DEFAULT_GENERATORS = "mechanism,translation,methods"
@@ -66,6 +68,59 @@ HYPOTHESIS_POOL_JSON_CONTRACT = """```json
 }
 ```"""
 
+RESEARCH_DOMAIN_INSTRUCTIONS = {
+    "biomedical": (
+        "医学/生命科学来源策略：优先 PubMed/PMC、ClinicalTrials.gov、WHO/FDA/NIH/专业指南，"
+        "并结合 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ/PNAS、Nature Medicine、"
+        "Nature Biomedical Engineering、Nature Cancer、Cancer Cell、Radiology、"
+        "European Radiology、Medical Image Analysis、bioRxiv/medRxiv/arXiv、"
+        "Google Scholar/Semantic Scholar/OpenAlex 可定位到的论文页面。"
+    ),
+    "engineering": (
+        "工科/工程技术来源策略：优先 IEEE Xplore、ACM Digital Library、SpringerLink、"
+        "ScienceDirect/Elsevier、Wiley、Taylor & Francis、arXiv、Google Scholar、"
+        "Semantic Scholar、OpenAlex、标准组织页面、专利页面和相关开源实现。"
+        "若课题涉及医学影像或生物医学工程，可同时纳入 PubMed/PMC 作为补充来源。"
+    ),
+    "ai-cs": (
+        "AI/计算机科学来源策略：优先 arXiv、OpenReview、NeurIPS/ICML/ICLR、CVPR/ICCV/ECCV、"
+        "ACL/EMNLP/NAACL、KDD/WWW/SIGIR、AAAI/IJCAI、CHI/UIST、ACM/IEEE 数字图书馆、"
+        "Papers with Code、GitHub、Semantic Scholar、OpenAlex 和作者/会议官方页面。"
+    ),
+    "materials": (
+        "材料/化学与工程交叉来源策略：优先 Nature Materials、Nature Nanotechnology、"
+        "Advanced Materials、ACS、RSC、Wiley、SpringerLink、ScienceDirect/Elsevier、"
+        "ChemRxiv/arXiv、专利页面、标准/测试方法和可复现实验数据来源。"
+    ),
+    "general": (
+        "通用跨学科来源策略：优先 Google Scholar、Semantic Scholar、OpenAlex、Crossref、"
+        "出版商论文页面、arXiv/bioRxiv/medRxiv/ChemRxiv/SSRN、官方机构页面、标准/指南、"
+        "专利、数据集和可核验开源项目。根据 topic 自动选择医学、工程、AI 或材料来源。"
+    ),
+}
+
+VENUE_FOCUS_INSTRUCTIONS = {
+    "high-impact": (
+        "高影响 venue 优先：先用领域顶级期刊、顶会、旗舰 Transactions、权威指南/标准或高影响预印本锚定研究方向；"
+        "随后补充最直接相关的专门期刊、会议、技术报告、数据集和开源实现。"
+        "不得只因 venue 层级较低而排除直接证据，也不得把 venue 声誉当作研究质量的唯一代理指标。"
+    ),
+    "balanced": (
+        "平衡来源优先：同时重视高影响 venue、直接相关研究、综述/指南/标准、预印本、实现和数据集；"
+        "按研究设计、可复现性、与问题的直接相关性和证据距离排序。"
+    ),
+    "direct": (
+        "直接证据优先：优先纳入与研究问题、技术、对象、数据、任务和终点最直接匹配的研究；"
+        "高影响 venue 主要用于补充背景、方法趋势和前沿方向。"
+    ),
+}
+
+LEGACY_JOURNAL_FOCUS_TO_VENUE_FOCUS = {
+    "top-journals": "high-impact",
+    "balanced": "balanced",
+    "direct": "direct",
+}
+
 JOURNAL_FOCUS_INSTRUCTIONS = {
     "top-journals": (
         "顶刊/高影响证据优先：先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、"
@@ -104,6 +159,22 @@ REFERENCE_STYLE_INSTRUCTIONS = {
 def normalize_list(value: str) -> str:
     items = [item.strip() for item in value.split(",") if item.strip()]
     return ", ".join(items) if items else "none"
+
+
+def effective_venue_focus(args: argparse.Namespace) -> str:
+    if getattr(args, "venue_focus", None):
+        return args.venue_focus
+    return LEGACY_JOURNAL_FOCUS_TO_VENUE_FOCUS[args.journal_focus]
+
+
+def build_source_instructions(args: argparse.Namespace) -> str:
+    venue_focus = effective_venue_focus(args)
+    return (
+        f"研究领域：{args.research_domain}\n"
+        f"领域来源策略：{RESEARCH_DOMAIN_INSTRUCTIONS[args.research_domain]}\n"
+        f"Venue/source 优先级：{VENUE_FOCUS_INSTRUCTIONS[venue_focus]}\n"
+        "检索时不要只限 PubMed；应根据研究领域覆盖论文、预印本、会议、标准、专利、数据集和开源实现等可核验来源。"
+    )
 
 
 def project_root() -> Path:
@@ -282,7 +353,7 @@ def print_if_lookup(args: argparse.Namespace) -> int:
 def build_reference_instructions(args: argparse.Namespace) -> str:
     citation_rule = REFERENCE_STYLE_INSTRUCTIONS[args.reference_style]
     if args.journal_metrics == "none":
-        metrics_rule = "本轮不要求补充期刊指标；仍需核验 DOI/PMID 和期刊名。"
+        metrics_rule = "本轮不要求补充期刊指标；仍需核验 DOI/PMID、venue/source 名称和关键链接。"
     else:
         if args.impact_factor_source:
             source_kind = getattr(args, "impact_factor_source_kind", "description")
@@ -310,26 +381,31 @@ def build_reference_instructions(args: argparse.Namespace) -> str:
             "匹配不到或无法核验时必须写“IF: 未匹配/未核验”，不得猜测或补造。"
             "IF 只作为期刊背景信息，不得替代研究设计质量、样本量、偏倚风险和证据距离判断。"
         )
+        if args.research_domain != "biomedical":
+            metrics_rule += (
+                "对会议论文、预印本、标准、专利、数据集和开源项目，不要强行匹配 IF；"
+                "应写“IF: 不适用/未核验”，并另外标注 venue/source 类型、是否同行评审、是否有代码/数据和可复现状态。"
+            )
     return f"{citation_rule}\n{metrics_rule}"
 
 
 def build_output_requirements(args: argparse.Namespace) -> str:
     if args.journal_metrics == "none":
         evidence_columns = (
-            "规范参考文献、期刊、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID"
+            "规范参考文献、venue/source、来源类型、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID"
         )
         reference_detail = (
-            "参考文献列表必须使用指定引用格式；每条论文都要给 DOI/PMID（能核验时）和链接。"
+            "参考文献列表必须使用指定引用格式；每条论文/会议/预印本/标准/实现都要给 DOI/PMID/arXiv ID/官方链接（能核验时）和访问链接。"
         )
         uncertainty_detail = (
             "证据不足或引用信息无法核验时明确写“不足/未核验”，不要补造结论。"
         )
     else:
         evidence_columns = (
-            "规范参考文献、期刊、IF、Q分区、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID"
+            "规范参考文献、venue/source、IF/Q分区或 venue/source status、来源类型、研究类型、对象/模型、核心发现、主要限制、链接/DOI/PMID/arXiv ID/官方链接"
         )
         reference_detail = (
-            "参考文献列表必须使用指定引用格式；每条论文都要给 DOI/PMID（能核验时）、IF/Q分区（能匹配时）和链接。"
+            "参考文献列表必须使用指定引用格式；期刊论文给 DOI/PMID（能核验时）、IF/Q分区（能匹配时）和链接；会议、预印本、标准、专利、数据集或代码给官方链接、版本/日期和 venue/source status。"
         )
         uncertainty_detail = (
             "证据不足、IF 匹配失败或引用信息无法核验时明确写“不足/未核验/未匹配”，不要补造结论。"
@@ -339,14 +415,14 @@ def build_output_requirements(args: argparse.Namespace) -> str:
 2. 输出检索日志、证据表、假设表、反方审查、排序表、Top 3 验证方案。
 3. 证据表至少包含：{evidence_columns}。
 4. {reference_detail}
-5. 预印本、综述、动物/体外研究、回顾性研究、RCT、指南要分层标注。
-6. 单独标注“顶刊/高影响文献提供的研究方向”和“专科直接证据提供的可验证事实”，不要混为同一种证据。
+5. 预印本、会议、期刊论文、综述、标准、专利、数据集、开源实现、动物/体外研究、回顾性研究、RCT、指南要分层标注。
+6. 单独标注“高影响 venue/source 提供的研究方向”和“直接证据提供的可验证事实”，不要混为同一种证据。
 7. {uncertainty_detail}
 8. 对进入最终排序的假设输出 Deep Verification Review：拆成核心假设、必要假定、可检验子假定、支持证据、反证/缺失证据，并标注哪些假定一旦失败会推翻该假设。
 9. 输出 Novelty Search Review：每条 Top 假设在标注新颖性前必须做针对性实时检索；无法完成核查时不得声称新颖，只能写“未核验”。新颖性分级限定为：完全新颖、机制已有但应用场景新、靶点/技术已有但组合新、已有人做过，不算新颖、未核验。
 10. 输出 Tournament Pairwise Log：multi-agent/tournament 模式必须给出成对比较记录；高分候选需要更细的正反论证，低分候选可用简化比较。比较时必须检查顺序/位置偏倚，必要时反向顺序复核。
 11. 输出 Meta-review Feedback for next run：列出反复出现的薄弱点、缺失检索方向、下轮 reviewer/agent 调整、应避免的假设模式、值得扩展的方向，以及建议的下一轮 scope/transfer-domains/reviewers。
-12. 结尾列出医疗转化前景、关键风险、待补证据和规范参考文献。
+12. 结尾列出医学/工程/产业转化前景、关键风险、待补证据和规范参考文献。
 13. 最后追加一个 fenced JSON 块，标题写 `hypothesis_pool.json`，使用下面字段，便于后续机器解析：
 
 {HYPOTHESIS_POOL_JSON_CONTRACT}"""
@@ -378,7 +454,8 @@ def build_prompt(args: argparse.Namespace) -> str:
 
 执行模式：{args.mode}
 
-文献优先级：{JOURNAL_FOCUS_INSTRUCTIONS[args.journal_focus]}
+研究领域和来源策略：
+{build_source_instructions(args)}
 
 医疗安全边界：{args.medical_boundary}
 
@@ -415,7 +492,7 @@ Agent 结构：
 
 3. Search Expansion agent
    - 扩展级别：{args.expansion_level}
-   - 先把 topic 拆成概念组：疾病/对象、技术、相邻技术、任务/终点、方法学、机制。
+   - 先把 topic 拆成概念组：对象/系统/疾病、技术/材料/算法、相邻技术、任务/终点/指标、方法学、机制/原理。
    - 按扩展级别生成并记录检索式：none 只保留 core 和 high-impact anchor；focused 加入 adjacent、methods 和有限 cross-disease transfer；broad 可更积极加入机制、相邻技术和跨病种方法学检索。
    - 可用检索式类型包括：core、adjacent、cross-disease transfer、mechanism、methods、high-impact anchor。
    - 每类检索式都要说明目的、可能漂移风险和纳入/排除标准。
@@ -423,13 +500,13 @@ Agent 结构：
 4. Cross-Disease Transfer agent
    - 候选迁移病种/场景：{normalize_list(args.transfer_domains)}
    - 若扩展级别为 none，则只说明未启用跨病种迁移检索，不展开该 agent。
-   - 只搜索“同技术或相邻技术在其他病种中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics、验证终点。
-   - 跨病种证据不得直接支撑目标病种临床有效性结论，只能进入“可迁移启发”或“待验证假设”。
+   - 只搜索“同技术或相邻技术在其他病种、对象、材料体系、设备平台或任务中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics/benchmark、验证终点或工程指标。
+   - 跨病种/跨场景证据不得直接支撑目标场景有效性结论，只能进入“可迁移启发”或“待验证假设”。
 
 5. Evidence Distance Classifier
    - 为每条证据标注 evidence distance：core、adjacent、cross-disease transfer、mechanism only、methods only、high-impact anchor。
    - core/adjacent 可支撑主要结论；cross-disease、mechanism、methods 只能支撑假设生成或方法设计。
-   - 若跨病种证据与目标病种生理、血供、检查窗口或临床终点不一致，必须写明迁移风险。
+   - 若跨病种/跨场景证据与目标对象、数据分布、物理机制、检查窗口、工程约束或临床/工程终点不一致，必须写明迁移风险。
 
 6. Generation agents
    - 生成视角：{normalize_list(args.generators)}
@@ -558,8 +635,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--transfer-domains",
         default=DEFAULT_TRANSFER_DOMAINS,
         help=(
-            "Comma-separated disease or organ contexts for cross-disease transfer "
-            "in --mode multi-agent."
+            "Comma-separated disease, organ, application, material, platform, or "
+            "benchmark contexts for transfer in --mode multi-agent."
+        ),
+    )
+    parser.add_argument(
+        "--research-domain",
+        choices=tuple(RESEARCH_DOMAIN_INSTRUCTIONS),
+        default=DEFAULT_RESEARCH_DOMAIN,
+        help=(
+            "Source profile for live search instructions: biomedical, engineering, "
+            "ai-cs, materials, or general."
+        ),
+    )
+    parser.add_argument(
+        "--venue-focus",
+        choices=tuple(VENUE_FOCUS_INSTRUCTIONS),
+        default=None,
+        help=(
+            "Venue/source priority. Overrides --journal-focus when provided: "
+            "high-impact, balanced, or direct."
         ),
     )
     parser.add_argument(
@@ -567,8 +662,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=tuple(JOURNAL_FOCUS_INSTRUCTIONS),
         default=DEFAULT_JOURNAL_FOCUS,
         help=(
-            "Evidence priority: top-journals anchors directions, balanced mixes "
-            "high-impact and direct evidence, direct prioritizes exact-match studies."
+            "Backward-compatible alias for venue priority. Prefer --venue-focus "
+            "for new runs."
         ),
     )
     parser.add_argument(

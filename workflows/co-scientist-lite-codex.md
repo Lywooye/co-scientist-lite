@@ -33,7 +33,8 @@ python3 tools/co_scientist_lite.py \
   --scope "<组合或自定义 scope>" \
   --depth standard \
   --mode multi-agent \
-  --journal-focus top-journals \
+  --research-domain biomedical \
+  --venue-focus high-impact \
   --reference-style vancouver \
   --journal-metrics impact-factor
 ```
@@ -59,11 +60,21 @@ python3 tools/co_scientist_lite.py \
 - `影像、病理、多组学、临床结局均可纳入`
 - `仅用于科研构思；不输出个人化诊断或治疗建议`
 
-`--journal-focus` 可选：
+`--research-domain` 可选：
 
-- `top-journals`：默认值。先用顶刊/高影响文献锚定研究方向，再补专科直接证据。
-- `balanced`：高影响方向、专科直接证据、指南和临床试验平衡纳入。
-- `direct`：优先 exact-match 直接证据，顶刊主要用于机制背景和前沿方向。
+- `biomedical`：默认值。PubMed/PMC、ClinicalTrials.gov、指南、医学/生命科学期刊和生物医学预印本优先。
+- `engineering`：IEEE Xplore、ACM Digital Library、SpringerLink、ScienceDirect、Wiley、arXiv、标准、专利和开源实现。
+- `ai-cs`：arXiv、OpenReview、NeurIPS/ICML/ICLR、CVPR/ICCV/ECCV、ACL/EMNLP、Papers with Code、GitHub、ACM/IEEE。
+- `materials`：Nature Materials、Advanced Materials、ACS、RSC、ChemRxiv/arXiv、专利、标准和实验数据。
+- `general`：跨学科来源，按 topic 自动混合学术搜索、出版商页面、预印本、标准、专利、数据集和开源项目。
+
+`--venue-focus` 可选：
+
+- `high-impact`：默认值。先用领域顶刊、顶会、旗舰 Transactions、权威指南/标准或高影响预印本锚定方向，再补直接证据。
+- `balanced`：高影响来源、直接证据、综述/指南/标准、预印本、实现和数据集平衡纳入。
+- `direct`：优先 exact-match 直接证据，高影响 venue 主要用于机制背景和前沿方向。
+
+`--journal-focus` 仍可用于旧命令兼容：`top-journals` 会映射为 `--venue-focus high-impact`，`balanced` 和 `direct` 保持同义。新命令优先使用 `--venue-focus`。
 
 `--mode` 可选：
 
@@ -84,8 +95,8 @@ python3 tools/co_scientist_lite.py \
 
 `--journal-metrics` 可选：
 
-- `impact-factor`：默认值。尽量给每条论文补充 IF 和 Q 分区。
-- `none`：不要求期刊指标，但仍需核验 DOI/PMID。
+- `impact-factor`：默认值。适合期刊论文；会议、预印本、标准、专利、数据集和代码应标注 venue/source status，不强行匹配 IF。
+- `none`：不要求期刊指标，但仍需核验 DOI/PMID/arXiv ID/官方链接。
 
 `multi-agent` 模式相关可选项：
 
@@ -94,7 +105,7 @@ python3 tools/co_scientist_lite.py \
 - `--reviewers`：默认 `evidence,methods,translation`，控制审查视角。
 - `--ranking`：默认 `tournament`，可选 `score`。
 - `--expansion-level`：默认 `focused`，可选 `none`、`focused`、`broad`。
-- `--transfer-domains`：默认 `liver,thyroid,lymph-node,kidney,prostate`，用于方法迁移参考。
+- `--transfer-domains`：默认 `liver,thyroid,lymph-node,kidney,prostate`，用于跨病种、跨器官、跨应用、跨材料、跨平台或 benchmark 方法迁移参考。
 
 如果有 JCR/IF 表格，可以加：
 
@@ -127,6 +138,8 @@ python3 tools/co_scientist_lite.py \
   --objective "生成可验证假设并筛选 Top 3 假设" \
   --scope "偏转化医学；优先近期顶刊方向和直接证据" \
   --mode multi-agent \
+  --research-domain biomedical \
+  --venue-focus high-impact \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
@@ -141,9 +154,9 @@ python3 tools/co_scientist_lite.py \
 
 - `Supervisor agent`：拆题、规划、定义成功标准和停止条件。
 - `Evidence agent`：使用当前会话可用的实时搜索能力形成证据表。
-- `Journal Metrics step`：按规范格式整理参考文献，并尽量匹配 IF/Q 分区。
-- `Search Expansion agent`：从 topic 拆出概念组，生成 core、adjacent、methods、cross-disease transfer 等检索式。
-- `Cross-Disease Transfer agent`：检索同技术在其他病种/器官中的方法学启发，但不把它当作目标病种的直接临床证据。
+- `Journal Metrics step`：按规范格式整理参考文献；期刊论文尽量匹配 IF/Q 分区，非期刊来源标注 venue/source status。
+- `Search Expansion agent`：从 topic 拆出对象/系统/疾病、技术/材料/算法、任务/终点/指标等概念组，生成 core、adjacent、methods、cross-disease/cross-scenario transfer 等检索式。
+- `Cross-Disease Transfer agent`：检索同技术在其他病种、器官、应用、材料、平台或 benchmark 中的方法学启发，但不把它当作目标场景的直接有效性证据。
 - `Evidence Distance Classifier`：给每条证据标注 core、adjacent、cross-disease transfer、mechanism only、methods only 或 high-impact anchor。
 - `Generation agents`：从不同视角生成候选假设。
 - `Proximity agent`：去重、聚类、合并相似假设。
@@ -152,7 +165,7 @@ python3 tools/co_scientist_lite.py \
 - `Evolution agent`：对高分假设做 refine/combine/split/reject。
 - `Meta-review agent`：综合输出最终 Top 3 和验证路线。
 
-边界：不接 ChEMBL、UniProt、AlphaFold，不建本地文献库；跨病种证据只用于方法迁移和假设生成；这是结构化角色仿真，不是 Google Co-Scientist 的复刻。
+边界：不接 ChEMBL、UniProt、AlphaFold，不建本地文献库；跨病种/跨场景证据只用于方法迁移和假设生成；这是结构化角色仿真，不是 Google Co-Scientist 的复刻。
 
 保存一份任务请求：
 

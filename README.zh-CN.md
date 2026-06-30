@@ -22,13 +22,14 @@ python3 tools/co_scientist_lite.py \
   --time-window "优先近 5 年；必要时追溯奠基文献；必须写明检索日期" \
   --depth standard \
   --mode multi-agent \
+  --research-domain biomedical \
+  --venue-focus high-impact \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
   --ranking tournament \
   --expansion-level focused \
   --transfer-domains liver,thyroid,lymph-node,kidney,prostate \
-  --journal-focus top-journals \
   --reference-style vancouver \
   --journal-metrics impact-factor \
   --impact-factor-year 2025 \
@@ -48,7 +49,9 @@ python3 tools/co_scientist_lite.py \
 | `--time-window` | 自由文本 | 优先近 5 年；必要时追溯奠基文献；必须写明检索日期 | 文献时间范围和检索日期要求。 |
 | `--mode` | `multi-agent`, `standard` | `multi-agent` | 工作流结构。`multi-agent` 仿真 Co-Scientist 风格的多角色流程；`standard` 使用 Scope -> Search -> Evidence -> Hypothesis -> Review -> Ranking 的线性流程。 |
 | `--depth` | `quick`, `standard`, `deep` | `standard` | 输出详略程度。 |
-| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | 文献优先级。`top-journals` 用顶刊/高影响文献锚定方向，同时保留专科直接证据。 |
+| `--research-domain` | `biomedical`, `engineering`, `ai-cs`, `materials`, `general` | `biomedical` | 实时检索来源配置。工科和 AI/CS 配置会加入 PubMed 之外的来源。 |
+| `--venue-focus` | `high-impact`, `balanced`, `direct` | `high-impact` | venue/source 优先级。`high-impact` 用顶刊、顶会、旗舰 Transactions、标准或高影响预印本锚定方向，同时保留直接证据。 |
+| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | 旧命令兼容参数。新命令优先使用 `--venue-focus`。 |
 | `--reference-style` | `vancouver`, `nature`, `apa` | `vancouver` | 最终参考文献格式。 |
 | `--journal-metrics` | `impact-factor`, `none` | `impact-factor` | 是否要求匹配 IF 和 Q 分区。 |
 | `--impact-factor-year` | 任意年份标签 | `2025` | 生成 prompt 时使用的 IF 年份标签。 |
@@ -58,7 +61,7 @@ python3 tools/co_scientist_lite.py \
 | `--reviewers` | 逗号分隔列表 | `evidence,methods,translation` | `multi-agent` 模式下的审查视角。 |
 | `--ranking` | `tournament`, `score` | `tournament` | `multi-agent` 模式下的排序方式。 |
 | `--expansion-level` | `none`, `focused`, `broad` | `focused` | 检索扩展范围。`focused` 会加入相邻检索词和有限跨病种方法迁移。 |
-| `--transfer-domains` | 逗号分隔列表 | `liver,thyroid,lymph-node,kidney,prostate` | 可参考的方法迁移病种或器官场景。 |
+| `--transfer-domains` | 逗号分隔列表 | `liver,thyroid,lymph-node,kidney,prostate` | 可参考的方法迁移病种、器官、应用、材料、平台或 benchmark 场景。 |
 | `--medical-boundary` | 自由文本 | 科研/转化医学假设，不输出个人化诊断或治疗建议 | 生成 prompt 时的医学安全边界。 |
 | `--save` | flag | 关闭 | 保存生成的任务提示。若配置了 `CO_SCIENTIST_REQUEST_DIR` 或 `local/profile.env`，优先使用该目录；否则回退到 `outputs/co_scientist_requests/`。 |
 | `--output` | 文件路径 | 无 | 将生成的任务提示保存到指定路径。 |
@@ -84,6 +87,18 @@ Scope 可选：
 - `影像、病理、多组学、临床结局均可纳入`
 - `仅用于科研构思；不输出个人化诊断或治疗建议`
 
+## 研究领域和来源配置
+
+这个工具不是 PubMed-only。生成 prompt 时会按 `--research-domain` 写入不同来源池：
+
+- `biomedical`：PubMed/PMC、ClinicalTrials.gov、WHO/FDA/NIH、专业指南、主要生物医学期刊、bioRxiv/medRxiv/arXiv、Google Scholar、Semantic Scholar、OpenAlex。
+- `engineering`：IEEE Xplore、ACM Digital Library、SpringerLink、ScienceDirect/Elsevier、Wiley、Taylor & Francis、arXiv、标准组织页面、专利和相关开源实现。
+- `ai-cs`：arXiv、OpenReview、NeurIPS/ICML/ICLR、CVPR/ICCV/ECCV、ACL/EMNLP/NAACL、KDD/WWW/SIGIR、AAAI/IJCAI、CHI/UIST、ACM/IEEE、Papers with Code、GitHub、Semantic Scholar、OpenAlex。
+- `materials`：Nature Materials、Nature Nanotechnology、Advanced Materials、ACS、RSC、Wiley、SpringerLink、ScienceDirect/Elsevier、ChemRxiv/arXiv、专利、标准和可复现实验数据。
+- `general`：跨学科来源，包括学术搜索、出版商页面、预印本平台、官方机构、标准、专利、数据集和可核验开源项目。
+
+对于工科、AI/CS、材料、标准、专利、数据集和软件，影响因子不总是适用。启用 `--journal-metrics impact-factor` 时，生成的 prompt 会要求只在适合的期刊论文上匹配 IF/Q；非期刊来源要标注 venue/source status，不能猜测指标。
+
 ## 参考文献格式和影响因子
 
 生成的报告默认会要求使用规范参考文献格式，并在能够核验时补充期刊影响因子和 Q 分区。
@@ -104,7 +119,7 @@ python3 tools/co_scientist_lite.py --lookup-if "Radiology"
 
 这个模式会仿真 supervisor、evidence agent、search expansion agent、cross-disease transfer agent、evidence-distance classifier、generation agents、proximity/clustering agent、reflection reviewers、tournament ranker、evolution agent 和 meta-review agent 的结构。它不连接 ChEMBL、UniProt、AlphaFold，也不使用本地论文库。
 
-`--expansion-level focused` 用来避免没有本地文献库时检索范围过窄：先从 topic 拆出疾病、技术、相邻技术、任务/终点、方法学和机制，再有限扩展检索式。`--transfer-domains` 用于指定可参考的跨病种/跨器官方法学场景；这些证据只能作为方法迁移和假设生成启发，不能直接支撑目标病种的临床有效性结论。
+`--expansion-level focused` 用来避免没有本地文献库时检索范围过窄：先从 topic 拆出对象/系统/疾病、技术/材料/算法、相邻技术、任务/终点/指标、方法学和机制/原理，再有限扩展检索式。`--transfer-domains` 用于指定可参考的跨病种、跨器官或跨场景方法学来源；这些证据只能作为方法迁移和假设生成启发，不能直接支撑目标场景有效性结论。
 
 ## 输出契约
 

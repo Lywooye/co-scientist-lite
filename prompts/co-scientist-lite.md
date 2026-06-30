@@ -22,6 +22,9 @@
 执行模式：
 <standard 或 multi-agent>
 
+研究领域：
+<biomedical / engineering / ai-cs / materials / general；默认 biomedical>
+
 搜索扩展：
 <none / focused / broad；默认 focused>
 
@@ -37,19 +40,28 @@
 IF 来源：
 <可选：用户提供的 JCR/IF 表或实时可核验来源；最终报告不要暴露本地绝对路径>
 
-文献优先级：
-默认采用“顶刊/高影响证据优先，但不排除专科直接证据”。先用 Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、PNAS、Radiology/European Radiology/Medical Image Analysis 等综合、医学、肿瘤、影像和方法学高影响来源锚定研究方向；随后补充最直接相关的专科期刊证据。不得只因期刊级别低而排除直接临床证据，也不得把期刊级别当作研究质量的唯一代理指标。
+Venue/source 优先级：
+<high-impact / balanced / direct；默认 high-impact>
+
+来源策略：
+默认不要只限 PubMed。根据研究领域选择来源池：
+- biomedical：PubMed/PMC、ClinicalTrials.gov、WHO/FDA/NIH/专业指南、Nature/Science/Cell、NEJM/Lancet/JAMA/BMJ/PNAS、Nature Medicine、Nature Biomedical Engineering、Nature Cancer、Cancer Cell、Radiology、European Radiology、Medical Image Analysis、bioRxiv/medRxiv/arXiv、Google Scholar/Semantic Scholar/OpenAlex。
+- engineering：IEEE Xplore、ACM Digital Library、SpringerLink、ScienceDirect/Elsevier、Wiley、Taylor & Francis、arXiv、Google Scholar、Semantic Scholar、OpenAlex、标准组织页面、专利页面和相关开源实现。
+- ai-cs：arXiv、OpenReview、NeurIPS/ICML/ICLR、CVPR/ICCV/ECCV、ACL/EMNLP/NAACL、KDD/WWW/SIGIR、AAAI/IJCAI、CHI/UIST、ACM/IEEE 数字图书馆、Papers with Code、GitHub、Semantic Scholar、OpenAlex 和作者/会议官方页面。
+- materials：Nature Materials、Nature Nanotechnology、Advanced Materials、ACS、RSC、Wiley、SpringerLink、ScienceDirect/Elsevier、ChemRxiv/arXiv、专利页面、标准/测试方法和可复现实验数据来源。
+- general：Google Scholar、Semantic Scholar、OpenAlex、Crossref、出版商页面、预印本平台、官方机构页面、标准/指南、专利、数据集和可核验开源项目。
+`high-impact` 先用领域顶级期刊、顶会、旗舰 Transactions、权威指南/标准或高影响预印本锚定方向；`balanced` 平衡高影响与直接证据；`direct` 优先 exact-match 研究。不得把 venue 声誉当作研究质量的唯一代理指标。
 
 医疗安全边界：
 本输出只用于科研构思、文献综合和转化医学规划，不提供个人化诊断或治疗建议。涉及临床应用时，必须标注需要伦理、监管、临床专家和实验验证。
 
 执行规则：
 1. 先把研究问题拆成 PICO/PECO 或“疾病-机制-干预-验证模型”结构；如果问题太宽，先给出可执行的窄化版本。
-2. 必须做实时文献搜索。优先使用 PubMed/PMC、Nature/Science/Cell/NEJM/Lancet/JAMA/BMJ/PNAS、Nature Medicine/Nature Biomedical Engineering/Nature Cancer/Cancer Cell、Radiology/European Radiology/Medical Image Analysis、ClinicalTrials.gov、WHO/FDA/NIH/专业指南、bioRxiv/medRxiv/arXiv、Google Scholar/Semantic Scholar/OpenAlex 能定位到的论文页面。
-3. 记录检索日期、检索式、来源类型和关键链接。预印本、综述、动物实验、体外实验、回顾性临床研究、RCT、指南必须分层标注；同时标注“顶刊/高影响方向锚点”和“专科直接证据”。
+2. 必须做实时文献搜索，并按研究领域选择来源池；医学问题不能只看顶刊，工科/AI/材料问题不能被 PubMed 限制。需要覆盖论文、预印本、会议、标准、专利、数据集和开源实现等可核验来源。
+3. 记录检索日期、检索式、来源类型和关键链接。预印本、会议、期刊论文、综述、标准、专利、数据集、开源实现、动物实验、体外实验、回顾性临床研究、RCT、指南必须分层标注；同时标注“高影响 venue/source 方向锚点”和“直接证据”。
 4. 不编造 DOI、PMID、作者、期刊或结果。找不到原文时，明确写“未能核验全文/仅核验摘要或页面信息”。
 5. 参考文献必须使用指定格式。默认采用 Vancouver/NLM 风格：Authors. Title. Journal. Year;Volume(Issue):Pages. doi: DOI. PMID: PMID. 作者超过 6 位时可列前 6 位后加 et al.
-6. 若期刊指标设为 impact-factor，每条论文尽量补充最新可核验 IF 和 Q 分区，并在条目末尾追加 IF: x.x (JCR year; Qx)。若用户提供 IF/JCR 表，优先按期刊全称匹配，其次按标准缩写匹配；可识别字段包括全称、简称、影响因子、Q分区。匹配不到时写“IF: 未匹配/未核验”，不得猜测。IF 只作为期刊背景信息，不替代研究质量评价。
+6. 若期刊指标设为 impact-factor，期刊论文尽量补充最新可核验 IF 和 Q 分区，并在条目末尾追加 IF: x.x (JCR year; Qx)。会议论文、预印本、标准、专利、数据集和开源项目不要强行匹配 IF；写“IF: 不适用/未核验”，并标注 venue/source 类型、同行评审状态、代码/数据和可复现状态。匹配不到时写“IF: 未匹配/未核验”，不得猜测。IF 只作为期刊背景信息，不替代研究质量评价。
 7. 证据不足时，不要硬凑结论；把不足转化为待验证假设或排除标准。
 8. 所有医学迁移建议都必须写清楚：适用场景、需要的数据、最低验证路径、失败风险、不可过度解读之处。
 9. 新颖性判断必须先做针对性实时检索。找不到对应文献时只能说“本轮未发现直接相同研究”；如果没有完成联网核查，不得声称新颖，只能标注“未核验”。
@@ -66,9 +78,9 @@ IF 来源：
    - 输出检索日志表：数据库/站点、检索式、日期、筛选理由、关键链接。
 
 3. Evidence Extraction
-   - 输出证据表，列至少包括：编号、规范参考文献、期刊、来源层级、研究类型、对象/模型、核心发现、支持的机制、主要限制、链接/DOI/PMID。若启用期刊指标，增加 IF 和 Q分区列。
+   - 输出证据表，列至少包括：编号、规范参考文献、venue/source、来源类型、研究类型、对象/模型、核心发现、支持的机制/原理、主要限制、链接/DOI/PMID/arXiv ID/官方链接。若启用期刊指标，增加 IF/Q分区或 venue/source status 列。
    - 将强证据和弱证据分开，不把综述观点当作一手证据。
-   - 单独总结顶刊/高影响文献指向的研究趋势，再说明直接专科证据是否支持这些趋势。
+   - 单独总结高影响 venue/source 指向的研究趋势，再说明直接证据是否支持这些趋势。
 
 4. Hypothesis Generation
    - 生成 5-8 个可验证假设。
@@ -108,7 +120,7 @@ IF 来源：
      - 排序结果
      - Tournament Pairwise Log
      - Top 3 验证方案
-     - 医疗转化前景
+     - 医学/工程/产业转化前景
      - 不确定性和待补证据
      - Meta-review Feedback for next run
      - 规范参考文献
@@ -132,15 +144,15 @@ Evidence agent
 - 若要求期刊指标，使用用户提供的 IF/JCR 表或实时可核验来源补充 IF/Q 分区；匹配不到时明确写未匹配/未核验。若期刊指标为 none，不输出 IF/Q 约束。
 
 Search Expansion agent
-- 先把 topic 拆成概念组：疾病/对象、技术、相邻技术、任务/终点、方法学、机制。
+- 先把 topic 拆成概念组：对象/系统/疾病、技术/材料/算法、相邻技术、任务/终点/指标、方法学、机制/原理。
 - 按 expansion level 生成检索式：`none` 只保留 core 和 high-impact anchor；`focused` 加入 adjacent、methods 和有限 cross-disease transfer；`broad` 可更积极加入机制、相邻技术和跨病种方法学检索。
 - 可用检索式类型包括 core、adjacent、cross-disease transfer、mechanism、methods、high-impact anchor。
 - 每类检索式都要说明目的、可能漂移风险和纳入/排除标准。
 
 Cross-Disease Transfer agent
-- 只搜索“同技术或相邻技术在其他病种中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics、验证终点。
-- 跨病种证据不得直接支撑目标病种临床有效性结论，只能进入“可迁移启发”或“待验证假设”。
-- 若目标病种与迁移病种在生理、血供、检查窗口或临床终点上存在关键差异，必须明确写出迁移风险。
+- 只搜索“同技术或相邻技术在其他病种、对象、材料体系、设备平台或任务中的方法学启发”，例如参数设计、动态图像分析、运动校正、AI/radiomics/benchmark、验证终点或工程指标。
+- 跨病种/跨场景证据不得直接支撑目标场景有效性结论，只能进入“可迁移启发”或“待验证假设”。
+- 若目标场景与迁移场景在目标对象、数据分布、物理机制、检查窗口、工程约束或临床/工程终点上存在关键差异，必须明确写出迁移风险。
 
 Evidence Distance Classifier
 - 为每条证据标注 evidence distance：core、adjacent、cross-disease transfer、mechanism only、methods only、high-impact anchor。
@@ -226,8 +238,10 @@ Multi-agent 模式的额外输出：
 目标：<找机制 / 药物重定位 / 临床转化选题 / 实验方案 / 综述选题>
 范围：<疾病、人群、模型、时间范围、排除项>
 输出深度：<quick / standard / deep>
+研究领域：<biomedical / engineering / ai-cs / materials / general>
+Venue/source 优先级：<high-impact / balanced / direct>
 搜索扩展：<none / focused / broad>
-跨病种/跨场景迁移参考：<可留空，或写同技术可参考的病种/器官/任务>
+跨病种/跨场景迁移参考：<可留空，或写同技术可参考的病种/器官/任务/材料/平台/benchmark>
 参考文献格式：<vancouver / nature / apa>
 期刊指标：<impact-factor / none>
 IF 来源：<可选：上传表格或可核验来源>
@@ -235,6 +249,6 @@ IF 来源：<可选：上传表格或可核验来源>
 
 ## 使用边界
 
-- 适合：科研选题、假设筛选、药物重定位初筛、转化医学路线、文献地图。
+- 适合：科研选题、假设筛选、药物重定位初筛、转化医学路线、工程/AI/材料研究构思、文献地图。
 - 不适合：个人临床诊疗、未验证治疗建议、替代系统综述或注册型 meta-analysis。
 - 如果需要写入个人知识库，先把本工具输出作为来源或项目材料，再按你的知识库规则单独处理。

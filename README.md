@@ -22,13 +22,14 @@ python3 tools/co_scientist_lite.py \
   --time-window "Prioritize the last 5 years; include foundational literature when needed; state the search date" \
   --depth standard \
   --mode multi-agent \
+  --research-domain biomedical \
+  --venue-focus high-impact \
   --rounds 2 \
   --generators mechanism,translation,methods \
   --reviewers evidence,methods,translation \
   --ranking tournament \
   --expansion-level focused \
   --transfer-domains liver,thyroid,lymph-node,kidney,prostate \
-  --journal-focus top-journals \
   --reference-style vancouver \
   --journal-metrics impact-factor \
   --impact-factor-year 2025 \
@@ -48,7 +49,9 @@ Most options are optional. The tool now defaults to `--mode multi-agent`.
 | `--time-window` | free text | built-in recent-literature window | Literature time window and search-date requirement. |
 | `--mode` | `multi-agent`, `standard` | `multi-agent` | Workflow structure. `multi-agent` simulates Co-Scientist-style roles; `standard` uses a linear Scope -> Search -> Evidence -> Hypothesis -> Review -> Ranking flow. |
 | `--depth` | `quick`, `standard`, `deep` | `standard` | Output detail level. |
-| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | Evidence priority. `top-journals` anchors directions in high-impact sources while preserving direct specialty evidence. |
+| `--research-domain` | `biomedical`, `engineering`, `ai-cs`, `materials`, `general` | `biomedical` | Source profile for live-search instructions. Engineering and AI/CS profiles add venues beyond PubMed. |
+| `--venue-focus` | `high-impact`, `balanced`, `direct` | `high-impact` | Venue/source priority. `high-impact` anchors directions in top journals, conferences, transactions, standards, or influential preprints while preserving direct evidence. |
+| `--journal-focus` | `top-journals`, `balanced`, `direct` | `top-journals` | Backward-compatible alias for older commands. Prefer `--venue-focus` for new runs. |
 | `--reference-style` | `vancouver`, `nature`, `apa` | `vancouver` | Citation style for final references. |
 | `--journal-metrics` | `impact-factor`, `none` | `impact-factor` | Whether to request IF/Q quartile matching. |
 | `--impact-factor-year` | free text year label | `2025` | IF year label used in the generated prompt. |
@@ -58,7 +61,7 @@ Most options are optional. The tool now defaults to `--mode multi-agent`.
 | `--reviewers` | comma-separated list | `evidence,methods,translation` | Review perspectives in `multi-agent` mode. |
 | `--ranking` | `tournament`, `score` | `tournament` | Ranking method in `multi-agent` mode. |
 | `--expansion-level` | `none`, `focused`, `broad` | `focused` | Search expansion breadth. `focused` adds adjacent terms and limited cross-disease transfer. |
-| `--transfer-domains` | comma-separated list | `liver,thyroid,lymph-node,kidney,prostate` | Method-transfer disease or organ contexts. |
+| `--transfer-domains` | comma-separated list | `liver,thyroid,lymph-node,kidney,prostate` | Transfer contexts for diseases, organs, applications, materials, platforms, or benchmarks. |
 | `--medical-boundary` | free text | research ideation only | Medical safety boundary for the generated prompt. |
 | `--save` | flag | off | Save the generated task prompt. Uses `CO_SCIENTIST_REQUEST_DIR` or `local/profile.env` when configured; otherwise falls back to `outputs/co_scientist_requests/`. |
 | `--output` | file path | none | Save the generated prompt to an explicit path. |
@@ -84,6 +87,18 @@ Scope options:
 - `Imaging, pathology, multi-omics, and clinical outcomes may be included`
 - `For research ideation only; do not provide personalized diagnosis or treatment advice`
 
+## Research Domains and Source Profiles
+
+The tool is not PubMed-only. It generates source instructions according to `--research-domain`:
+
+- `biomedical`: PubMed/PMC, ClinicalTrials.gov, WHO/FDA/NIH, professional guidelines, major biomedical journals, bioRxiv/medRxiv/arXiv, Google Scholar, Semantic Scholar, and OpenAlex.
+- `engineering`: IEEE Xplore, ACM Digital Library, SpringerLink, ScienceDirect/Elsevier, Wiley, Taylor & Francis, arXiv, standards bodies, patents, and relevant open-source implementations.
+- `ai-cs`: arXiv, OpenReview, NeurIPS/ICML/ICLR, CVPR/ICCV/ECCV, ACL/EMNLP/NAACL, KDD/WWW/SIGIR, AAAI/IJCAI, CHI/UIST, ACM/IEEE, Papers with Code, GitHub, Semantic Scholar, and OpenAlex.
+- `materials`: Nature Materials, Nature Nanotechnology, Advanced Materials, ACS, RSC, Wiley, SpringerLink, ScienceDirect/Elsevier, ChemRxiv/arXiv, patents, standards, and reproducible experimental data.
+- `general`: cross-disciplinary coverage using scholarly search, publisher pages, preprint platforms, official organizations, standards, patents, datasets, and verifiable open-source projects.
+
+For engineering, AI/CS, materials, standards, patents, datasets, and software, journal impact factor is not always applicable. When `--journal-metrics impact-factor` is enabled, generated prompts ask for IF/Q only where appropriate and require non-journal sources to be labeled with venue/source status instead of guessed metrics.
+
 ## Reference Formatting and Journal Metrics
 
 Reports are prompted to format references in a standard citation style and, by default, add journal impact factors when they can be verified.
@@ -104,7 +119,7 @@ python3 tools/co_scientist_lite.py --lookup-if "Radiology"
 
 This mode simulates the structure of a supervisor, evidence agent, search expansion agent, cross-disease transfer agent, evidence-distance classifier, generation agents, proximity/clustering agent, reflection reviewers, tournament ranker, evolution agent, and meta-review agent. It does not connect to ChEMBL, UniProt, AlphaFold, or any local paper database.
 
-Search expansion is intended to reduce topic over-narrowing when no local literature database is available. `--expansion-level focused` derives adjacent search terms from the topic and adds limited cross-disease method transfer. Cross-disease evidence is treated as method inspiration only; it cannot directly support clinical claims for the target disease.
+Search expansion is intended to reduce topic over-narrowing when no local literature database is available. `--expansion-level focused` derives adjacent search terms from the topic and adds limited cross-disease or cross-scenario method transfer. Transfer evidence is treated as method inspiration only; it cannot directly support effectiveness claims for the target disease, system, material, or application.
 
 ## Output Contract
 
